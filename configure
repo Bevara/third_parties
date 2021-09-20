@@ -1,0 +1,39 @@
+#!/bin/bash
+BUILD_DIR=$PWD
+
+# Find source path
+source_path="`echo $0 | sed -e 's#/configure##'`"
+source_path_used="yes"
+if test -z "$source_path" -o "$source_path" = "." ; then
+    source_path="`pwd`"
+    source_path_used="no"
+    build_path=$source_path
+else
+    source_path="`cd \"$source_path\"; pwd`"
+    build_path="`pwd`"
+fi
+
+TOOLS_DIR=$source_path/tools
+
+if [ -z "$MAKEFLAGS" ]; then
+    UNAMES=$(uname -s)
+    MAKEFLAGS=
+    if which nproc >/dev/null; then
+        MAKEFLAGS=-j$(nproc)
+    elif [ "$UNAMES" = "Darwin" ] && which sysctl >/dev/null; then
+        MAKEFLAGS=-j$(sysctl -n machdep.cpu.thread_count)
+    fi
+fi
+
+echo "Configure emsdk"
+cd $source_path
+source emsdk_vers.txt
+cd emsdk
+./emsdk install $EMSDK_VERS
+./emsdk activate $EMSDK_VERS
+. ./emsdk_env.sh
+
+# emsdk library patch
+TOOLS_DIR=$source_path/tools
+EMSCRIPTEN=$EMSDK/upstream/emscripten
+export PATH=$PATH:$EMSDK/upstream/bin
