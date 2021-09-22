@@ -29,9 +29,8 @@ cd $source_path
 git submodule update --init
 
 echo "Configuring emsdk"
-cd $source_path
-source emsdk_vers.txt
-cd emsdk
+source $source_path/emsdk_vers.txt
+cd $source_path/emsdk
 ./emsdk install $EMSDK_VERS
 ./emsdk activate $EMSDK_VERS
 . ./emsdk_env.sh
@@ -41,12 +40,10 @@ EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
 echo "Building gpac"
-cd $source_path
-cd gpac
+cd $source_path/gpac
 source ./check_revision.sh
 
-cd $BUILD_DIR
-mkdir -p gpac
-cd gpac
+mkdir -p $BUILD_DIR/gpac
+cd $BUILD_DIR/gpac
 emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-remotery --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
 emmake make lib
