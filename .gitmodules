@@ -1,6 +1,8 @@
 [submodule "emsdk"]
 	path = emsdk
 	url = https://github.com/emscripten-core/emsdk.git
+	branch = main
 [submodule "gpac"]
 	path = gpac
 	url = https://github.com/Bevara/Access-open.git
+	branch = raw
