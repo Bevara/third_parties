@@ -44,7 +44,11 @@ EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
 
-echo "Download dependencies"
+echo "Building gpac"
+cd $source_path
+cd gpac
+source ./check_revision.sh
+
 cd $BUILD_DIR
 mkdir -p gpac
 cd gpac
