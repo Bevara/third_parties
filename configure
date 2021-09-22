@@ -1,4 +1,6 @@
 #!/bin/bash
+
+echo "Setting environnement"
 BUILD_DIR=$PWD
 
 # Find source path
@@ -25,7 +27,7 @@ if [ -z "$MAKEFLAGS" ]; then
     fi
 fi
 
-echo "Configure emsdk"
+echo "Configuring emsdk"
 cd $source_path
 source emsdk_vers.txt
 cd emsdk
@@ -37,3 +39,14 @@ cd emsdk
 TOOLS_DIR=$source_path/tools
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
+
+echo "Downloading dependencies"
+cd $source_path
+git submodule update --init --recursive --remote
+
+echo "Download dependencies"
+cd $BUILD_DIR
+mkdir gpac
+cd gpac
+emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-remotery --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
+emmake make lib
