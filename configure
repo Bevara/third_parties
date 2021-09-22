@@ -1,5 +1,4 @@
 #!/bin/bash
-
 echo "Setting environnement"
 BUILD_DIR=$PWD
 
@@ -47,7 +46,7 @@ export PATH=$PATH:$EMSDK/upstream/bin
 
 echo "Download dependencies"
 cd $BUILD_DIR
-mkdir gpac
+mkdir -p gpac
 cd gpac
 emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-remotery --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
 emmake make lib
