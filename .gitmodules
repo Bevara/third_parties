@@ -6,3 +6,6 @@
 	path = gpac
 	url = https://github.com/Bevara/Access-open.git
 	branch = raw
+[submodule "tinyxml2"]
+	path = tinyxml2
+	url = https://github.com/leethomason/tinyxml2.git
