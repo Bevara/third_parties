@@ -3,7 +3,7 @@ echo "Setting environnement"
 BUILD_DIR=$PWD
 
 # Find source path
-source_path="`echo $0 | sed -e 's#/configure##'`"
+source_path="`echo $0 | sed -e 's#/build_thirdparties.sh##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
     source_path="`pwd`"
@@ -13,8 +13,6 @@ else
     source_path="`cd \"$source_path\"; pwd`"
     build_path="`pwd`"
 fi
-
-TOOLS_DIR=$source_path/tools
 
 if [ -z "$MAKEFLAGS" ]; then
     UNAMES=$(uname -s)
@@ -28,7 +26,7 @@ fi
 
 echo "Downloading dependencies"
 cd $source_path
-git submodule update --init --recursive --remote
+git submodule update --init
 
 echo "Configuring emsdk"
 cd $source_path
@@ -39,10 +37,8 @@ cd emsdk
 . ./emsdk_env.sh
 
 # emsdk library patch
-TOOLS_DIR=$source_path/tools
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
-
 
 echo "Building gpac"
 cd $source_path
