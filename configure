@@ -27,6 +27,10 @@ if [ -z "$MAKEFLAGS" ]; then
     fi
 fi
 
+echo "Downloading dependencies"
+cd $source_path
+git submodule update --init --recursive --remote
+
 echo "Configuring emsdk"
 cd $source_path
 source emsdk_vers.txt
@@ -40,9 +44,6 @@ TOOLS_DIR=$source_path/tools
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
-echo "Downloading dependencies"
-cd $source_path
-git submodule update --init --recursive --remote
 
 echo "Download dependencies"
 cd $BUILD_DIR
