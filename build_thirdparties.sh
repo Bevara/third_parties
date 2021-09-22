@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "Setting environnement"
-BUILD_DIR=$PWD
+mkdir -p third_parties
+cd third_parties
 
 # Find source path
 source_path="`echo $0 | sed -e 's#/build_thirdparties.sh##'`"
@@ -41,15 +42,15 @@ export PATH=$PATH:$EMSDK/upstream/bin
 
 echo "Building gpac"
 cd $source_path/gpac
-source ./check_revision.sh
+source $source_path/gpac/check_revision.sh
 
-mkdir -p $BUILD_DIR/gpac
-cd $BUILD_DIR/gpac
+mkdir -p $build_path/gpac
+cd $build_path/gpac
 emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-remotery --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
 emmake make "${MAKEFLAGS}" -C src all
 
 echo "Building tinyxml2"
-mkdir -p $BUILD_DIR/tinyxml2
-cd $BUILD_DIR/tinyxml2
+mkdir -p $build_path/tinyxml2
+cd $build_path/tinyxml2
 emcmake cmake $source_path/tinyxml2
 emmake make "${MAKEFLAGS}" 
