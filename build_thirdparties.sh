@@ -46,7 +46,7 @@ source $source_path/gpac/check_revision.sh
 
 mkdir -p $build_path/gpac
 cd $build_path/gpac
-emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-remotery --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
+emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
 emmake make "${MAKEFLAGS}" -C src all
 
 echo "Building tinyxml2"
