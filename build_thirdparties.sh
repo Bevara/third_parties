@@ -49,8 +49,8 @@ cd $build_path/gpac
 emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no
 emmake make "${MAKEFLAGS}" -C src all
 
-echo "Building tinyxml2"
-mkdir -p $build_path/tinyxml2
-cd $build_path/tinyxml2
-emcmake cmake $source_path/tinyxml2
-emmake make "${MAKEFLAGS}" 
+echo "Building rapidjson"
+mkdir -p $build_path/rapidjson
+cd $build_path/rapidjson
+emcmake cmake $source_path/rapidjson
+emmake make "${MAKEFLAGS}"
