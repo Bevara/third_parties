@@ -9,3 +9,6 @@
 [submodule "rapidjson"]
 	path = rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "openjpeg"]
+	path = openjpeg
+	url = https://github.com/uclouvain/openjpeg.git

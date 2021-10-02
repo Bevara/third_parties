@@ -54,3 +54,9 @@ mkdir -p $build_path/rapidjson
 cd $build_path/rapidjson
 emcmake cmake $source_path/rapidjson
 emmake make "${MAKEFLAGS}"
+
+echo "Building openjpeg"
+mkdir -p $build_path/openjpeg
+cd $build_path/openjpeg
+emcmake cmake $source_path/openjpeg
+emmake make "${MAKEFLAGS}"
