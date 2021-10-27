@@ -40,29 +40,30 @@ cd $source_path/emsdk
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
-# echo "Building gpac"
-# cd $source_path/gpac
-# source $source_path/gpac/check_revision.sh
+echo "Building gpac"
+cd $source_path/gpac
+source $source_path/gpac/check_revision.sh
 
-# mkdir -p $build_path/gpac
-# cd $build_path/gpac
-# emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no --enable-debug
-# emmake make "${MAKEFLAGS}" -C src all
+mkdir -p $build_path/gpac
+cd $build_path/gpac
+emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no --enable-debug
+emmake make "${MAKEFLAGS}" -C src all
 
-# echo "Building rapidjson"
-# mkdir -p $build_path/rapidjson
-# cd $build_path/rapidjson
-# emcmake cmake $source_path/rapidjson
-# emmake make "${MAKEFLAGS}"
+echo "Building rapidjson"
+mkdir -p $build_path/rapidjson
+cd $build_path/rapidjson
+emcmake cmake $source_path/rapidjson
+emmake make "${MAKEFLAGS}"
 
-# echo "Building openjpeg"
-# mkdir -p $build_path/openjpeg
-# cd $build_path/openjpeg
-# emcmake cmake $source_path/openjpeg
-# emmake make "${MAKEFLAGS}"
+echo "Building openjpeg"
+mkdir -p $build_path/openjpeg
+cd $build_path/openjpeg
+emcmake cmake $source_path/openjpeg
+emmake make "${MAKEFLAGS}"
 
 echo "Building nanojpeg"
+cd $source_path
 svn co http://svn.emphy.de/nanojpeg/
 mkdir -p $build_path/nanojpeg
 cd $build_path/openjpeg
-emmake make "${MAKEFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c $build_path/nanojpeg/nanojpeg.wasm
+emcc "${MAKEFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm
