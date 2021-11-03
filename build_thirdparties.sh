@@ -66,4 +66,4 @@ cd $source_path
 svn co http://svn.emphy.de/nanojpeg/
 mkdir -p $build_path/nanojpeg
 cd $build_path/openjpeg
-emcc -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s  
+emcc -g -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s SIDE_MODULE=1
