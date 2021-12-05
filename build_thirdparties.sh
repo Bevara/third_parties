@@ -46,7 +46,7 @@ source $source_path/gpac/check_revision.sh
 
 mkdir -p $build_path/gpac
 cd $build_path/gpac
-emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11  --use-png=no --use-jpeg=no --use-xvid=no --enable-debug
+emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --enable-debug
 emmake make "${MAKEFLAGS}" -C src all
 
 echo "Building rapidjson"
@@ -66,4 +66,5 @@ cd $source_path
 svn co http://svn.emphy.de/nanojpeg/
 mkdir -p $build_path/nanojpeg
 cd $build_path/openjpeg
-emcc -g -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s SIDE_MODULE=1
+#emcc -g -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s SIDE_MODULE=2
+emcc $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -g -o $build_path/nanojpeg/nanojpeg.o
