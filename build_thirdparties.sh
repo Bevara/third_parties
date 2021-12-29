@@ -1,4 +1,14 @@
 #!/bin/bash
+debuginfo="no"
+no_gcc_opt="no"
+
+for opt do
+    case "$opt" in
+        --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
+            ;;
+    esac
+done
+
 echo "Setting environnement"
 mkdir -p third_parties
 cd third_parties
@@ -25,6 +35,10 @@ if [ -z "$MAKEFLAGS" ]; then
     fi
 fi
 
+if test "$debuginfo" = "yes"; then
+    EMCCFLAGS=" -g"
+fi
+
 echo "Downloading dependencies"
 cd $source_path
 git submodule update --init
@@ -46,7 +60,13 @@ source $source_path/gpac/check_revision.sh
 
 mkdir -p $build_path/gpac
 cd $build_path/gpac
-emconfigure $source_path/gpac/configure --target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --enable-debug
+
+gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no"
+
+if test "$debuginfo" = "yes"; then
+    gpac_flags+=" --enable-debug"
+fi
+emconfigure $source_path/gpac/configure $gpac_flags
 emmake make "${MAKEFLAGS}" -C src all
 
 echo "Building rapidjson"
@@ -66,5 +86,5 @@ cd $source_path
 svn co http://svn.emphy.de/nanojpeg/
 mkdir -p $build_path/nanojpeg
 cd $build_path/openjpeg
-#emcc -g -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s SIDE_MODULE=2
-emcc $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -g -o $build_path/nanojpeg/nanojpeg.o
+emcc "${EMCCFLAGS}" -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s SIDE_MODULE=2
+emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o $build_path/nanojpeg/nanojpeg.o
