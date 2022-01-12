@@ -37,6 +37,9 @@ fi
 
 if test "$debuginfo" = "yes"; then
     EMCCFLAGS=" -g"
+    CMAKE_BUILD_TYPE="-DCMAKE_BUILD_TYPE=Debug"
+else
+    CMAKE_BUILD_TYPE="-DCMAKE_BUILD_TYPE=Release"
 fi
 
 echo "Downloading dependencies"
@@ -72,13 +75,13 @@ emmake make "${MAKEFLAGS}" -C src all
 echo "Building rapidjson"
 mkdir -p $build_path/rapidjson
 cd $build_path/rapidjson
-emcmake cmake $source_path/rapidjson
+emcmake cmake $source_path/rapidjson $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
 echo "Building openjpeg"
 mkdir -p $build_path/openjpeg
 cd $build_path/openjpeg
-emcmake cmake $source_path/openjpeg
+emcmake cmake $source_path/openjpeg -DCMAKE_C_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
 echo "Building nanojpeg"
@@ -92,5 +95,5 @@ emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o 
 echo "Building libpng"
 mkdir -p $build_path/libpng
 cd $build_path/libpng
-emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic"
+emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
