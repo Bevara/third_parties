@@ -12,3 +12,6 @@
 [submodule "openjpeg"]
 	path = openjpeg
 	url = https://github.com/uclouvain/openjpeg.git
+[submodule "libpng-code"]
+	path = libpng-code
+	url = https://git.code.sf.net/p/libpng/code

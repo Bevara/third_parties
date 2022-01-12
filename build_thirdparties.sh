@@ -88,3 +88,9 @@ mkdir -p $build_path/nanojpeg
 cd $build_path/openjpeg
 emcc "${EMCCFLAGS}" -s EXPORTED_FUNCTIONS=_njInit,_njDecode,_njGetImageSize,_njIsColor,_njGetWidth,_njGetHeight,_njGetImage,_njGetImageSize,_njDone  $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -o $build_path/nanojpeg/nanojpeg.wasm --no-entry -s SIDE_MODULE=2
 emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o $build_path/nanojpeg/nanojpeg.o
+
+echo "Building libpng"
+mkdir -p $build_path/libpng
+cd $build_path/libpng
+emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic"
+emmake make "${MAKEFLAGS}"
