@@ -97,3 +97,15 @@ mkdir -p $build_path/libpng
 cd $build_path/libpng
 emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
+
+echo "Building libmad"
+cd $source_path
+wget -nc ftp://ftp.mars.org/pub/mpeg//libmad-0.15.1b.tar.gz
+tar -xf libmad-0.15.1b.tar.gz
+mkdir -p $build_path/libmad
+cd $build_path/libmad
+if test "$debuginfo" = "yes"; then
+    mad_flags+="--enable-debugging"
+fi
+emconfigure $source_path/libmad-0.15.1b/configure --enable-static --with-pic CFLAGS=-Wno-error=unused-command-line-argument --build=x86_64-unknown-linux-gnu $mad_flags
+emmake make "${MAKEFLAGS}"
