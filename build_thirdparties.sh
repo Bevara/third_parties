@@ -109,3 +109,10 @@ if test "$debuginfo" = "yes"; then
 fi
 emconfigure $source_path/libmad-0.15.1b/configure --enable-static --with-pic CFLAGS=-Wno-error=unused-command-line-argument --build=x86_64-unknown-linux-gnu $mad_flags
 emmake make "${MAKEFLAGS}"
+
+echo "Building liba52"
+cd $source_path
+wget -nc https://liba52.sourceforge.io/files/a52dec-0.7.4.tar.gz
+tar -xf a52dec-0.7.4.tar.gz
+mkdir -p $build_path/liba52
+cd $build_path/liba52
