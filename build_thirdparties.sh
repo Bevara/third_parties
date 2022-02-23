@@ -116,7 +116,7 @@ wget -nc https://liba52.sourceforge.io/files/a52dec-0.7.4.tar.gz
 tar -xf a52dec-0.7.4.tar.gz
 mkdir -p $build_path/liba52
 cd $build_path/liba52
-emconfigure $source_path/a52dec-0.7.4/configure CFLAGS="-fPIC"
+emconfigure $source_path/a52dec-0.7.4/configure  --disable-oss CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 
