@@ -42,10 +42,6 @@ else
     CMAKE_BUILD_TYPE="-DCMAKE_BUILD_TYPE=Release"
 fi
 
-echo "Downloading dependencies"
-cd $source_path
-git submodule update --init
-
 echo "Configuring emsdk"
 source $source_path/emsdk_vers.txt
 cd $source_path/emsdk
