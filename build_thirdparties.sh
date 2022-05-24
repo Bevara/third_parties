@@ -61,7 +61,7 @@ mkdir -p $build_path/gpac
 cd $build_path/gpac
 
 #gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --use-ffmpeg=local"
-gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no"
+gpac_flags="--target-os=emscripten --disable-3d  --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no"
 
 if test "$debuginfo" = "yes"; then
     gpac_flags+=" --enable-debug"
