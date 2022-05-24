@@ -114,6 +114,13 @@ cd $build_path/liba52
 emconfigure $source_path/a52dec-0.7.4/configure  --disable-oss CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
+echo "Building openhevc"
+cd $source_path/openHEVC/
+git apply ../openHEVC.patch
+mkdir -p $build_path/openhevc
+cd $build_path/openhevc
+emcmake cmake $source_path/openhevc -DCMAKE_C_FLAGS="-fPIC" -DUSE_YASM=OFF -DENABLE_EXECUTABLE=OFF $CMAKE_BUILD_TYPE
+emmake make 
 
 echo "Building ffmpeg"
 mkdir -p $build_path/ffmpeg

@@ -1,0 +1,67 @@
+diff --git a/libavcodec/hevc.c b/libavcodec/hevc.c
+index 461d37f6..fa1fbdea 100644
+--- a/libavcodec/hevc.c
++++ b/libavcodec/hevc.c
+@@ -39,6 +39,8 @@
+ #include "golomb.h"
+ #include "hevc.h"
+ 
++void ff_hevc_bump_frame(HEVCContext *s);
++
+ const uint8_t ff_hevc_pel_weight[65] = { [2] = 0, [4] = 1, [6] = 2, [8] = 3, [12] = 4, [16] = 5, [24] = 6, [32] = 7, [48] = 8, [64] = 9 };
+ 
+ #define POC_DISPLAY_MD5
+diff --git a/platform/x86/config.h.in b/platform/x86/config.h.in
+index 3d0e1f4b..96609b53 100644
+--- a/platform/x86/config.h.in
++++ b/platform/x86/config.h.in
+@@ -12,7 +12,7 @@
+ #define AVCONV_DATADIR "/usr/local/share/ffmpeg"
+ #define CC_IDENT "gcc 4.6 (Ubuntu/Linaro 4.6.4-1ubuntu1~12.04)"
+ #define av_restrict
+-#if defined(WIN32)
++#if defined(WIN32) || defined(__EMSCRIPTEN__)
+ #define EXTERN_ASM 
+ #else
+ #define EXTERN_ASM _
+@@ -109,8 +109,13 @@
+ #define HAVE_AVX2_EXTERNAL   @USE_AVX2@
+ #define HAVE_FMA3_EXTERNAL 0
+ #define HAVE_FMA4_EXTERNAL   @USE_FMA4@
++#if !defined(__EMSCRIPTEN__)
+ #define HAVE_MMX_EXTERNAL    ARCH_X86
+ #define HAVE_MMXEXT_EXTERNAL ARCH_X86_64
++#else
++#define HAVE_MMX_EXTERNAL    0
++#define HAVE_MMXEXT_EXTERNAL 0
++#endif
+ #define HAVE_SSE_EXTERNAL    ARCH_X86_64
+ #define HAVE_SSE2_EXTERNAL   @USE_SSE2@
+ #define HAVE_SSE3_EXTERNAL   @USE_SSE3@
+@@ -139,7 +144,7 @@
+ #define HAVE_AVX2_INLINE   @USE_AVX2@
+ #define HAVE_FMA3_INLINE 0
+ #define HAVE_FMA4_INLINE   @USE_FMA4@
+-#if defined(WIN32)
++#if defined(WIN32) || defined(__EMSCRIPTEN__)
+ #define HAVE_MMX_INLINE 0
+ #define HAVE_MMXEXT_INLINE 0
+ #define HAVE_SSE_INLINE 0
+@@ -168,7 +173,7 @@
+ #define HAVE_MIPS32R2_INLINE 0
+ #define HAVE_MIPSDSPR1_INLINE 0
+ #define HAVE_MIPSDSPR2_INLINE 0
+-#if defined(WIN32)
++#if defined(WIN32) || defined(__EMSCRIPTEN__)
+ #define HAVE_INLINE_ASM 0
+ #else
+ #define HAVE_INLINE_ASM   ARCH_X86
+@@ -305,7 +310,7 @@
+ #define HAVE_MEMALIGN 0
+ #define HAVE_MEMORYBARRIER 0
+ #define HAVE_MKSTEMP 1
+-#if defined(WIN32)
++#if defined(WIN32) || defined(__EMSCRIPTEN__)
+ #define HAVE_MM_EMPTY 0
+ #else
+ #define HAVE_MM_EMPTY 1

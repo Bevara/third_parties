@@ -18,3 +18,6 @@
 [submodule "ffmpeg"]
 	path = ffmpeg
 	url = https://git.ffmpeg.org/ffmpeg.git
+[submodule "openHEVC"]
+	path = openHEVC
+	url = https://github.com/OpenHEVC/openHEVC.git
