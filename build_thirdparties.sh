@@ -138,3 +138,11 @@ cd $build_path/OpenVVC
 autoreconf -if $source_path/OpenVVC
 emconfigure $source_path/OpenVVC/configure
 emmake make "${MAKEFLAGS}"
+
+echo "Building Kvazaar"
+cd $source_path/kvazaar
+./autogen.sh
+mkdir -p $build_path/kvazaar
+cd $build_path/kvazaar
+emconfigure $source_path/kvazaar/configure
+emmake make "${MAKEFLAGS}"
