@@ -24,3 +24,6 @@
 [submodule "DNGFull"]
 	path = DNGFull
 	url = https://github.com/Bevara/DNGFull.git
+[submodule "OpenVVC"]
+	path = OpenVVC
+	url = https://github.com/OpenVVC/OpenVVC.git

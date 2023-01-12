@@ -131,3 +131,10 @@ fi
 
 emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-shared $ffmpeg_flags
 emmake make "${MAKEFLAGS}"
+
+echo "Building openVVC"
+mkdir -p $build_path/OpenVVC
+cd $build_path/OpenVVC
+autoreconf -if $source_path/OpenVVC
+emconfigure $source_path/OpenVVC/configure
+emmake make "${MAKEFLAGS}"
