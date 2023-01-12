@@ -30,3 +30,6 @@
 [submodule "kvazaar"]
 	path = kvazaar
 	url = https://github.com/ultravideo/kvazaar.git
+[submodule "x264"]
+	path = x264
+	url = https://code.videolan.org/videolan/x264.git
