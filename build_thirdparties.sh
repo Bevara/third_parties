@@ -53,99 +53,99 @@ cd $source_path/emsdk
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
-# echo "Building gpac"
-# cd $source_path/gpac
-# source $source_path/gpac/check_revision.sh
+echo "Building gpac"
+cd $source_path/gpac
+source $source_path/gpac/check_revision.sh
 
-# mkdir -p $build_path/gpac
-# cd $build_path/gpac
+mkdir -p $build_path/gpac
+cd $build_path/gpac
 
-# #gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --use-ffmpeg=local"
-# gpac_flags="--target-os=emscripten --disable-3d  --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no"
+#gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --use-ffmpeg=local"
+gpac_flags="--target-os=emscripten --disable-3d  --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no"
 
-# if test "$debuginfo" = "yes"; then
-#     gpac_flags+=" --enable-debug"
-# fi
-# emconfigure $source_path/gpac/configure $gpac_flags
-# emmake make "${MAKEFLAGS}" -C src all
+if test "$debuginfo" = "yes"; then
+    gpac_flags+=" --enable-debug"
+fi
+emconfigure $source_path/gpac/configure $gpac_flags
+emmake make "${MAKEFLAGS}" -C src all
 
-# echo "Building rapidjson"
-# mkdir -p $build_path/rapidjson
-# cd $build_path/rapidjson
-# emcmake cmake $source_path/rapidjson $CMAKE_BUILD_TYPE
-# emmake make "${MAKEFLAGS}"
+echo "Building rapidjson"
+mkdir -p $build_path/rapidjson
+cd $build_path/rapidjson
+emcmake cmake $source_path/rapidjson $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
 
-# echo "Building openjpeg"
-# mkdir -p $build_path/openjpeg
-# cd $build_path/openjpeg
-# emcmake cmake $source_path/openjpeg -DCMAKE_C_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
-# emmake make "${MAKEFLAGS}"
+echo "Building openjpeg"
+mkdir -p $build_path/openjpeg
+cd $build_path/openjpeg
+emcmake cmake $source_path/openjpeg -DCMAKE_C_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
 
-# echo "Building nanojpeg"
-# cd $source_path
-# svn co http://svn.emphy.de/nanojpeg/
-# mkdir -p $build_path/nanojpeg
-# emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o $build_path/nanojpeg/nanojpeg.o
+echo "Building nanojpeg"
+cd $source_path
+svn co http://svn.emphy.de/nanojpeg/
+mkdir -p $build_path/nanojpeg
+emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o $build_path/nanojpeg/nanojpeg.o
 
-# echo "Building libpng"
-# mkdir -p $build_path/libpng
-# cd $build_path/libpng
-# emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
-# emmake make "${MAKEFLAGS}"
+echo "Building libpng"
+mkdir -p $build_path/libpng
+cd $build_path/libpng
+emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
 
-# echo "Building libmad"
-# cd $source_path
-# wget -nc ftp://ftp.mars.org/pub/mpeg//libmad-0.15.1b.tar.gz
-# tar -xf libmad-0.15.1b.tar.gz
-# mkdir -p $build_path/libmad
-# cd $build_path/libmad
-# if test "$debuginfo" = "yes"; then
-#     mad_flags+="--enable-debugging"
-# fi
-# emconfigure $source_path/libmad-0.15.1b/configure --enable-static --with-pic CFLAGS=-Wno-error=unused-command-line-argument --build=x86_64-unknown-linux-gnu $mad_flags
-# emmake make "${MAKEFLAGS}"
+echo "Building libmad"
+cd $source_path
+wget -nc ftp://ftp.mars.org/pub/mpeg//libmad-0.15.1b.tar.gz
+tar -xf libmad-0.15.1b.tar.gz
+mkdir -p $build_path/libmad
+cd $build_path/libmad
+if test "$debuginfo" = "yes"; then
+    mad_flags+="--enable-debugging"
+fi
+emconfigure $source_path/libmad-0.15.1b/configure --enable-static --with-pic CFLAGS=-Wno-error=unused-command-line-argument --build=x86_64-unknown-linux-gnu $mad_flags
+emmake make "${MAKEFLAGS}"
 
-# echo "Building liba52"
-# cd $source_path
-# wget -nc https://liba52.sourceforge.io/files/a52dec-0.7.4.tar.gz
-# tar -xf a52dec-0.7.4.tar.gz
-# mkdir -p $build_path/liba52
-# cd $build_path/liba52
-# emconfigure $source_path/a52dec-0.7.4/configure  --disable-oss CFLAGS="-fPIC"
-# emmake make "${MAKEFLAGS}"
+echo "Building liba52"
+cd $source_path
+wget -nc https://liba52.sourceforge.io/files/a52dec-0.7.4.tar.gz
+tar -xf a52dec-0.7.4.tar.gz
+mkdir -p $build_path/liba52
+cd $build_path/liba52
+emconfigure $source_path/a52dec-0.7.4/configure  --disable-oss CFLAGS="-fPIC"
+emmake make "${MAKEFLAGS}"
 
-# echo "Building openhevc"
-# cd $source_path/openHEVC
-# git apply ../openHEVC.patch
-# mkdir -p $build_path/openHEVC
-# cd $build_path/openHEVC
-# emcmake cmake $source_path/openHEVC -DCMAKE_C_FLAGS="-fPIC -Wno-incompatible-pointer-types" -DUSE_YASM=OFF -DENABLE_EXECUTABLE=OFF $CMAKE_BUILD_TYPE
-# emmake make 
+echo "Building openhevc"
+cd $source_path/openHEVC
+git apply ../openHEVC.patch
+mkdir -p $build_path/openHEVC
+cd $build_path/openHEVC
+emcmake cmake $source_path/openHEVC -DCMAKE_C_FLAGS="-fPIC -Wno-incompatible-pointer-types" -DUSE_YASM=OFF -DENABLE_EXECUTABLE=OFF $CMAKE_BUILD_TYPE
+emmake make 
 
-# echo "Building ffmpeg"
-# mkdir -p $build_path/ffmpeg
-# cd $build_path/ffmpeg
-# if test "$debuginfo" = "no"; then
-#     ffmpeg_flags+="--disable-debug"
-# fi
+echo "Building ffmpeg"
+mkdir -p $build_path/ffmpeg
+cd $build_path/ffmpeg
+if test "$debuginfo" = "no"; then
+    ffmpeg_flags+="--disable-debug"
+fi
 
-# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-shared $ffmpeg_flags
-# emmake make "${MAKEFLAGS}"
+emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-shared $ffmpeg_flags
+emmake make "${MAKEFLAGS}"
 
-# echo "Building openVVC"
-# mkdir -p $build_path/OpenVVC
-# cd $build_path/OpenVVC
-# autoreconf -if $source_path/OpenVVC
-# emconfigure $source_path/OpenVVC/configure
-# emmake make "${MAKEFLAGS}"
+echo "Building openVVC"
+mkdir -p $build_path/OpenVVC
+cd $build_path/OpenVVC
+autoreconf -if $source_path/OpenVVC
+emconfigure $source_path/OpenVVC/configure
+emmake make "${MAKEFLAGS}"
 
-# echo "Building Kvazaar"
-# cd $source_path/kvazaar
-# ./autogen.sh
-# mkdir -p $build_path/kvazaar
-# cd $build_path/kvazaar
-# emconfigure $source_path/kvazaar/configure
-# emmake make "${MAKEFLAGS}"
+echo "Building Kvazaar"
+cd $source_path/kvazaar
+./autogen.sh
+mkdir -p $build_path/kvazaar
+cd $build_path/kvazaar
+emconfigure $source_path/kvazaar/configure
+emmake make "${MAKEFLAGS}"
 
 echo "Building libx264"
 mkdir -p $build_path/x264
