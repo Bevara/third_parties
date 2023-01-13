@@ -150,7 +150,7 @@ emmake make "${MAKEFLAGS}"
 echo "Building libx264"
 mkdir -p $build_path/x264
 cd $build_path/x264
-emconfigure $source_path/x264/configure --enable-static --disable-cli  --disable-asm  --host=i686-gnu --prefix="$build_path/out"
+emconfigure $source_path/x264/configure --enable-static --enable-pic --disable-cli  --disable-asm --disable-thread --host=i686-gnu --prefix="$build_path/out"
 emmake make install-lib-static "${MAKEFLAGS}"
 
 echo "Building ffmpeg encoders"
