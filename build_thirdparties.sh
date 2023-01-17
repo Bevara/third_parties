@@ -176,5 +176,5 @@ wget -nc https://freefr.dl.sourceforge.net/project/faac/faad2-src/faad2-2.8.0/fa
 tar -xf faad2-2.8.8.tar.gz
 mkdir -p $build_path/libfaad
 cd $build_path/libfaad
-emconfigure $source_path/faad2-2.8.8/configure --enable-static --disable-shared --host=none
+emconfigure $source_path/faad2-2.8.8/configure --enable-static --disable-shared --host=none CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
