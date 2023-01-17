@@ -40,3 +40,6 @@
 [submodule "ogg"]
 	path = ogg
 	url = https://github.com/xiph/ogg.git
+[submodule "theora"]
+	path = theora
+	url = https://github.com/xiph/theora.git

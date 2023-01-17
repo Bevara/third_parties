@@ -190,3 +190,11 @@ mkdir -p $build_path/vorbis
 cd $build_path/vorbis
 emcmake cmake $source_path/vorbis -DCMAKE_C_FLAGS="-fpic"  -DOGG_LIBRARY=$build_path/ogg  -DOGG_INCLUDE_DIR="$source_path/ogg/include;$build_path/ogg/include" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIBM=OFF -DBUILD_TESTING=OFF  $CMAKE_BUILD_TYPE 
 emmake make "${MAKEFLAGS}"
+
+echo "Building theora"
+cd $source_path/theora
+./autogen.sh
+mkdir -p $build_path/theora
+cd $build_path/theora
+emconfigure $source_path/theora/configure --disable-shared --enable-static --disable-examples --disable-encode --disable-vorbistest  --disable-oggtest --disable-asm --disable-spec --disable-doc --with-ogg-libraries=$build_path/ogg  --with-ogg-includes="$build_path/ogg/include -I$source_path/ogg/include"
+emmake make "${MAKEFLAGS}"
