@@ -34,3 +34,9 @@
 [submodule "x264"]
 	path = x264
 	url = https://code.videolan.org/videolan/x264.git
+[submodule "vorbis"]
+	path = vorbis
+	url = https://github.com/xiph/vorbis.git
+[submodule "ogg"]
+	path = ogg
+	url = https://github.com/xiph/ogg.git

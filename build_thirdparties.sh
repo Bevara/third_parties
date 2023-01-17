@@ -178,3 +178,15 @@ mkdir -p $build_path/libfaad
 cd $build_path/libfaad
 emconfigure $source_path/faad2-2.8.8/configure --enable-static --disable-shared --host=none CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
+
+echo "Building ogg"
+mkdir -p $build_path/ogg
+cd $build_path/ogg
+emcmake cmake $source_path/ogg -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building vorbis"
+mkdir -p $build_path/vorbis
+cd $build_path/vorbis
+emcmake cmake $source_path/vorbis -DCMAKE_C_FLAGS="-fpic"  -DOGG_LIBRARY=$build_path/ogg  -DOGG_INCLUDE_DIR="$source_path/ogg/include;$build_path/ogg/include" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIBM=OFF -DBUILD_TESTING=OFF  $CMAKE_BUILD_TYPE 
+emmake make "${MAKEFLAGS}"
