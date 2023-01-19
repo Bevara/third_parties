@@ -212,3 +212,9 @@ emconfigure ./configure --disable-assembly --disable-pthread
 emmake make "${MAKEFLAGS}" libxvidcore.a
 cp $source_path/xvidcore/build/generic/=build/libxvidcore.a $build_path/xvidcore
 
+echo "Building libjpeg-turbo"
+mkdir -p $build_path/libjpeg-turbo
+cd $build_path/libjpeg-turbo
+emcmake cmake $source_path/libjpeg-turbo -DENABLE_SHARED=FALSE -DENABLE_STATIC=TRUE -DWITH_SIMD=FALSE -DWITH_TURBOJPEG=FALSE -DWITH_FUZZ=FALSE -DCMAKE_C_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+

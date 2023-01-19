@@ -43,3 +43,6 @@
 [submodule "theora"]
 	path = theora
 	url = https://github.com/xiph/theora.git
+[submodule "libjpeg-turbo"]
+	path = libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
