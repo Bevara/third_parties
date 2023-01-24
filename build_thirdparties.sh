@@ -93,7 +93,7 @@ emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o 
 echo "Building libpng"
 mkdir -p $build_path/libpng
 cd $build_path/libpng
-emcmake cmake $source_path/libpng-code -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
+emcmake cmake $source_path/libpng-code -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_EXECUTABLES=OFF -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=OFF  -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
 echo "Building libmad"
