@@ -53,8 +53,8 @@ cd $source_path/emsdk
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
-echo "Building zlib"
-embuilder build --pic zlib
+echo "Building emscripten libs"
+embuilder build --pic zlib libemmalloc libc
 
 echo "Building gpac"
 cd $source_path/gpac
