@@ -220,3 +220,31 @@ mkdir -p $build_path/libjpeg
 cd $build_path/libjpeg
 emconfigure $source_path/jpeg-9e/configure --enable-static --disable-shared CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
+
+echo "Building lcm2"
+cd $source_path
+wget -nc https://github.com/mm2/Little-CMS/releases/download/lcms2.13/lcms2-2.13.tar.gz
+tar -xf lcms2-2.13.tar.gz
+mkdir -p $build_path/lcms2
+cd $build_path/lcms2
+emconfigure $source_path/lcms2-2.13/configure --disable-shared --enable-static
+emmake make  "${MAKEFLAGS}"
+
+echo "Building higway"
+mkdir -p $build_path/higway
+cd $build_path/higway
+emcmake cmake $source_path/highway -DCMAKE_C_FLAGS="-fpic" -DHWY_ENABLE_CONTRIBS=OFF -DHWY_ENABLE_EXAMPLES=OFF -DHWY_ENABLE_INSTAL=OFF -DHWY_ENABLE_TESTS=OFF  $CMAKE_BUILD_TYPE 
+emmake make "${MAKEFLAGS}"
+
+echo "Building brotli"
+mkdir -p $build_path/brotli
+cd $build_path/brotli
+emcmake cmake $source_path/brotli -DCMAKE_C_FLAGS="-fpic" -DBUILD_SHARED_LIBS=OFF -DBROTLI_DISABLE_TESTS=TRUE $CMAKE_BUILD_TYPE 
+emmake make "${MAKEFLAGS}"
+
+echo "Building libjxl"
+mkdir -p $build_path/libjxl
+cd $build_path/libjxl
+emcmake cmake $source_path/libjxl -DCMAKE_C_FLAGS="-fpic" -DBUILD_SHARED_LIBS=FALSE -DJPEGXL_ENABLE_FUZZERS=FALSE -DJPEGXL_ENABLE_DEVTOOLS=FALSE -DJPEGXL_ENABLE_TOOLS=FALSE -DJPEGXL_ENABLE_JPEGLI=FALSE -DJPEGXL_ENABLE_JPEGLI_LIBJPEG=FALSE -DJPEGXL_ENABLE_DOXYGEN=FALSE -DJPEGXL_ENABLE_MANPAGES=FALSE -DJPEGXL_ENABLE_BENCHMARK=FALSE -DJPEGXL_ENABLE_EXAMPLES=FALSE -DJPEGXL_BUNDLE_LIBPNG=FALSE -DJPEGXL_ENABLE_JNI=FALSE -DJPEGXL_ENABLE_SJPEG=FALSE -DJPEGXL_ENABLE_OPENEXR=FALSE -DJPEGXL_ENABLE_SKCMS=FALSE -DJPEGXL_BUNDLE_SKCMS=FALSE -DJPEGXL_ENABLE_VIEWERS=FALSE -DJPEGXL_ENABLE_TCMALLOC=FALSE -DJPEGXL_ENABLE_PLUGINS=FALSE -DJPEGXL_ENABLE_COVERAGE=FALSE -DJPEGXL_ENABLE_PROFILER=FALSE -DJPEGXL_ENABLE_SIZELESS_VECTORS=FALSE -DJPEGXL_ENABLE_TRANSCODE_JPEG=FALSE -DJPEGXL_ENABLE_BOXES=FALSE -DJPEGXL_STATIC=ON -DJPEGXL_WARNINGS_AS_ERRORS=FALSE -DBUILD_TESTING=FALSE -DHWY_LIBRARY=$build_path/highway/libhwy.a  -DHWY_INCLUDE_DIR=$source_path/highway  -DBROTLI_INCLUDE_DIR=$source_path/brotli/c/include  -DBROTLICOMMON_LIBRARY=$build_path/brotli/libbrotlicommon.a  -DBROTLIENC_LIBRARY=$build_path/brotli/libbrotlienc.a  -DBROTLIDEC_LIBRARY=$build_path/brotli/libbrotlidec.a -DLCMS2_LIBRARY=$build_path/lcms2/src/.libs/liblcms2.a  -DLCMS2_INCLUDE_DIR=$source_path/lcms2-2.13/include $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}" jxl_dec-static
+
