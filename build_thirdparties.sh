@@ -237,9 +237,11 @@ emcmake cmake $source_path/highway -DCMAKE_C_FLAGS="-fpic" -DHWY_ENABLE_CONTRIBS
 emmake make "${MAKEFLAGS}"
 
 echo "Building brotli"
+cd $source_path/brotli
+sh ./bootstrap
 mkdir -p $build_path/brotli
 cd $build_path/brotli
-emcmake cmake $source_path/brotli -DCMAKE_C_FLAGS="-fpic" -DBUILD_SHARED_LIBS=OFF -DBROTLI_DISABLE_TESTS=TRUE $CMAKE_BUILD_TYPE 
+emconfigure $source_path/brotli/configure --enable-static --disable-shared CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libjxl"
