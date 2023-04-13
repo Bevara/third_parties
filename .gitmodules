@@ -53,3 +53,6 @@
 [submodule "brotli"]
 	path = brotli
 	url = https://github.com/google/brotli.git
+[submodule "jsmpeg"]
+	path = jsmpeg
+	url = https://github.com/Bevara/jsmpeg.git
