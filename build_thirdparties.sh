@@ -64,7 +64,7 @@ mkdir -p $build_path/gpac
 cd $build_path/gpac
 
 #gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --use-ffmpeg=local"
-gpac_flags="--enable-pic --disable-3d  --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no --disable-ogg --use-vorbis=no --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
+gpac_flags="--enable-pic --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no --disable-ogg --use-vorbis=no --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
 
 if test "$debuginfo" = "yes"; then
