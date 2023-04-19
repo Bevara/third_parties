@@ -62,10 +62,18 @@ source $source_path/gpac/check_revision.sh
 
 mkdir -p $build_path/gpac
 cd $build_path/gpac
-
-#gpac_flags="--target-os=emscripten --disable-ogg --disable-3d  --disable-x11 --use-xvid=no --use-ffmpeg=local"
-#gpac_flags="--enable-pic --disable-x11 --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no --disable-ogg --use-vorbis=no --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 gpac_flags="--enable-pic --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no --disable-ogg --use-vorbis=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
+
+echo "Building gpac minimal"
+mkdir -p $build_path/gpac_minimal
+cd $build_path/gpac_minimal
+gpac_flags="--disable-all"
+
+if test "$debuginfo" = "yes"; then
+    gpac_flags+=" --enable-debug"
+fi
+emconfigure $source_path/gpac/configure $gpac_flags
+emmake make "${MAKEFLAGS}"
 
 
 if test "$debuginfo" = "yes"; then
