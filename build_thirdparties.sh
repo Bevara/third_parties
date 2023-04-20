@@ -64,6 +64,12 @@ mkdir -p $build_path/gpac
 cd $build_path/gpac
 gpac_flags="--enable-pic --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no --disable-ogg --use-vorbis=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
+if test "$debuginfo" = "yes"; then
+    gpac_flags+=" --enable-debug"
+fi
+emconfigure $source_path/gpac/configure $gpac_flags
+emmake make "${MAKEFLAGS}"
+
 echo "Building gpac minimal"
 mkdir -p $build_path/gpac_minimal
 cd $build_path/gpac_minimal
