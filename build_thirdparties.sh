@@ -103,8 +103,6 @@ emmake make "${MAKEFLAGS}"
 echo "Building nanojpeg"
 cd $source_path
 svn co http://svn.emphy.de/nanojpeg/
-mkdir -p $build_path/nanojpeg
-emcc "${EMCCFLAGS}" $source_path/nanojpeg/trunk/nanojpeg/nanojpeg.c -c -fPIC -o $build_path/nanojpeg/nanojpeg.o
 
 echo "Building libpng"
 mkdir -p $build_path/libpng
