@@ -56,3 +56,6 @@
 [submodule "jsmpeg"]
 	path = jsmpeg
 	url = https://github.com/Bevara/jsmpeg.git
+[submodule "ArtPlayer"]
+	path = ArtPlayer
+	url = https://github.com/Bevara/ArtPlayer.git
