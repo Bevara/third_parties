@@ -261,10 +261,10 @@ cd $source_path/ArtPlayer
 npm install
 
 if test "$debuginfo" = "yes"; then
-    npm run build:dev
+    npm run build all
 else
-    npm run build
+    npm run build all
 fi
 
 mkdir -p $build_path/ArtPlayer
-cp $source_path/ArtPlayer/dist/artplayer.js $build_path/ArtPlayer
+cp $source_path/ArtPlayer/packages/artplayer/dist/artplayer.js $build_path/ArtPlayer
