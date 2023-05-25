@@ -269,3 +269,4 @@ fi
 mkdir -p $build_path/ArtPlayer
 cp $source_path/ArtPlayer/docs/compiled/artplayer.js $build_path/ArtPlayer
 cp $source_path/ArtPlayer/docs/compiled/universal-video.js $build_path/ArtPlayer
+cp $source_path/ArtPlayer/docs/compiled/universal-canvas.js $build_path/ArtPlayer
