@@ -134,6 +134,7 @@ emmake make "${MAKEFLAGS}"
 echo "Building openhevc"
 cd $source_path/openHEVC
 mkdir -p $build_path/openHEVC
+mkdir -p $build_path/openHEVC/bin
 cd $build_path/openHEVC
 emconfigure $source_path/openHEVC/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-asm --disable-stripping --disable-programs --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic $ffmpeg_flags
 emmake make openhevc-static
