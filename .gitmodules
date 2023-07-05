@@ -15,7 +15,7 @@
 [submodule "libpng-code"]
 	path = libpng-code
 	url = https://git.code.sf.net/p/libpng/code
-[submodule "ffmpeg"]
+[submodule "ffmpeg_1"]
 	path = ffmpeg
 	url = https://git.ffmpeg.org/ffmpeg.git
 [submodule "openHEVC"]
