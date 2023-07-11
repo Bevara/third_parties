@@ -9,6 +9,43 @@ for opt do
     esac
 done
 
+
+if ! command -v lbzip2 &> /dev/null
+then
+    echo "lbzip2 cannot be found on your system, please install it before running configure"
+    exit
+fi
+
+if ! command -v make &> /dev/null
+then
+    echo "make cannot be found on your system, please install it before running configure"
+    exit
+fi
+
+if ! command -v cmake &> /dev/null
+then
+    echo "cmake cannot be found on your system, please install it before running configure"
+    exit
+fi
+
+if ! command -v pkg-config &> /dev/null
+then
+    echo "pkg-config cannot be found on your system, please install it before running configure"
+    exit
+fi
+
+if ! command -v autoreconf &> /dev/null
+then
+    echo "autoreconf cannot be found on your system, please install it before running configure"
+    exit
+fi
+
+if ! command -v svn &> /dev/null
+then
+    echo "svn cannot be found on your system, please install it before running configure"
+    exit
+fi
+
 echo "Setting environnement"
 mkdir -p third_parties
 cd third_parties
