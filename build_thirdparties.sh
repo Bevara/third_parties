@@ -46,6 +46,12 @@ then
     exit
 fi
 
+if ! command -v bc &> /dev/null
+then
+    echo "bc cannot be found on your system, please install it before running configure"
+    exit
+fi
+
 echo "Setting environnement"
 mkdir -p third_parties
 cd third_parties
