@@ -52,6 +52,12 @@ then
     exit
 fi
 
+if ! command -v libtool &> /dev/null
+then
+    echo "libtool cannot be found on your system, please install it before running configure"
+    exit
+fi
+
 echo "Setting environnement"
 mkdir -p third_parties
 cd third_parties
