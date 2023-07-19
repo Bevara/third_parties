@@ -10,53 +10,53 @@ for opt do
 done
 
 
-if ! command -v lbzip2 &> /dev/null
-then
-    echo "lbzip2 cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v lbzip2 &> /dev/null
+# then
+#     echo "lbzip2 cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v make &> /dev/null
-then
-    echo "make cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v make &> /dev/null
+# then
+#     echo "make cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v cmake &> /dev/null
-then
-    echo "cmake cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v cmake &> /dev/null
+# then
+#     echo "cmake cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v pkg-config &> /dev/null
-then
-    echo "pkg-config cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v pkg-config &> /dev/null
+# then
+#     echo "pkg-config cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v autoreconf &> /dev/null
-then
-    echo "autoreconf cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v autoreconf &> /dev/null
+# then
+#     echo "autoreconf cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v svn &> /dev/null
-then
-    echo "svn cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v svn &> /dev/null
+# then
+#     echo "svn cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v bc &> /dev/null
-then
-    echo "bc cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v bc &> /dev/null
+# then
+#     echo "bc cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
-if ! command -v libtool &> /dev/null
-then
-    echo "libtool cannot be found on your system, please install it before running configure"
-    exit
-fi
+# if ! command -v libtool &> /dev/null
+# then
+#     echo "libtool cannot be found on your system, please install it before running configure"
+#     exit
+# fi
 
 echo "Setting environnement"
 mkdir -p third_parties
@@ -103,7 +103,7 @@ EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
 echo "Building emscripten libs"
-embuilder build libc++ libc++abi --pic
+embuilder build libc libc++ libc++abi --pic
 
 echo "Building gpac"
 cd $source_path/gpac
