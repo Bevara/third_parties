@@ -9,40 +9,9 @@
 [submodule "rapidjson"]
 	path = rapidjson
 	url = https://github.com/Tencent/rapidjson.git
-[submodule "openjpeg"]
-	path = openjpeg
-	url = https://github.com/uclouvain/openjpeg.git
 [submodule "libpng-code"]
 	path = libpng-code
 	url = https://git.code.sf.net/p/libpng/code
-[submodule "ffmpeg_1"]
-	path = ffmpeg
-	url = https://git.ffmpeg.org/ffmpeg.git
-[submodule "openHEVC"]
-	path = openHEVC
-	url = https://github.com/OpenHEVC/openHEVC.git
-	branch = ffmpeg_update
-[submodule "DNGFull"]
-	path = DNGFull
-	url = https://github.com/Bevara/DNGFull.git
-[submodule "OpenVVC"]
-	path = OpenVVC
-	url = https://github.com/OpenVVC/OpenVVC.git
-[submodule "kvazaar"]
-	path = kvazaar
-	url = https://github.com/ultravideo/kvazaar.git
-[submodule "x264"]
-	path = x264
-	url = https://code.videolan.org/videolan/x264.git
-[submodule "vorbis"]
-	path = vorbis
-	url = https://github.com/xiph/vorbis.git
-[submodule "ogg"]
-	path = ogg
-	url = https://github.com/xiph/ogg.git
-[submodule "theora"]
-	path = theora
-	url = https://github.com/xiph/theora.git
 [submodule "highway"]
 	path = highway
 	url = https://github.com/google/highway.git
@@ -53,9 +22,3 @@
 [submodule "brotli"]
 	path = brotli
 	url = https://github.com/google/brotli.git
-[submodule "jsmpeg"]
-	path = jsmpeg
-	url = https://github.com/Bevara/jsmpeg.git
-[submodule "ArtPlayer"]
-	path = ArtPlayer
-	url = https://github.com/Bevara/ArtPlayer.git
