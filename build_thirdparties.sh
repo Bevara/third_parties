@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 debuginfo="no"
 no_gcc_opt="no"
 
@@ -13,7 +13,7 @@ echo "Setting environnement"
 mkdir -p third_parties
 cd third_parties
 
-# Find source path
+Find source path
 source_path="`echo $0 | sed -e 's#/build_thirdparties.sh##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
@@ -49,7 +49,7 @@ cd $source_path/emsdk
 ./emsdk activate $EMSDK_VERS
 . ./emsdk_env.sh
 
-# emsdk library patch
+emsdk library patch
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
@@ -98,6 +98,15 @@ echo "Building libpng"
 mkdir -p $build_path/libpng
 cd $build_path/libpng
 emcmake cmake $source_path/libpng-code -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_EXECUTABLES=OFF -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=OFF  -DCMAKE_C_FLAGS="-fpic" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building libjpeg"
+cd $source_path
+wget -nc http://www.ijg.org/files/jpegsrc.v9e.tar.gz
+tar -xf jpegsrc.v9e.tar.gz
+mkdir -p $build_path/libjpeg
+cd $build_path/libjpeg
+emconfigure $source_path/jpeg-9e/configure --enable-static --disable-shared CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building higway"
