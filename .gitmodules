@@ -22,3 +22,6 @@
 [submodule "brotli"]
 	path = brotli
 	url = https://github.com/google/brotli.git
+[submodule "openjpeg"]
+	path = openjpeg
+	url = https://github.com/uclouvain/openjpeg.git
