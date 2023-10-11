@@ -25,3 +25,6 @@
 [submodule "openjpeg"]
 	path = openjpeg
 	url = https://github.com/uclouvain/openjpeg.git
+[submodule "qdbmp"]
+	path = qdbmp
+	url = https://github.com/madwyn/qdbmp.git

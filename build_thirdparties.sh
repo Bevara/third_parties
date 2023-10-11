@@ -136,3 +136,4 @@ mkdir -p $build_path/openjpeg
 cd $build_path/openjpeg
 emcmake cmake $source_path/openjpeg -DCMAKE_C_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
+
