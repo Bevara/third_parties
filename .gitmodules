@@ -28,3 +28,6 @@
 [submodule "qdbmp"]
 	path = qdbmp
 	url = https://github.com/madwyn/qdbmp.git
+[submodule "ffmpeg"]
+	path = ffmpeg
+	url = https://git.ffmpeg.org/ffmpeg.git
