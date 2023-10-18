@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 debuginfo="no"
 no_gcc_opt="no"
 
@@ -13,7 +13,7 @@ echo "Setting environnement"
 mkdir -p third_parties
 cd third_parties
 
-Find source path
+find source path
 source_path="`echo $0 | sed -e 's#/build_thirdparties.sh##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
