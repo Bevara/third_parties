@@ -49,7 +49,6 @@ cd $source_path/emsdk
 ./emsdk activate $EMSDK_VERS
 . ./emsdk_env.sh
 
-emsdk library patch
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
@@ -161,4 +160,13 @@ echo "Building ffmpeg-mpeg1"
 mkdir -p $build_path/ffmpeg-mpeg1
 cd $build_path/ffmpeg-mpeg1
 emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=mpeg1video
+emmake make "${MAKEFLAGS}"
+
+echo "Building liba52"
+cd $source_path
+wget -nc https://liba52.sourceforge.io/files/a52dec-0.7.4.tar.gz
+tar -xf a52dec-0.7.4.tar.gz
+mkdir -p $build_path/liba52
+cd $build_path/liba52
+emconfigure $source_path/a52dec-0.7.4/configure  --disable-oss CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
