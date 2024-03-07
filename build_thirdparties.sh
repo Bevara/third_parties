@@ -142,13 +142,13 @@ cd $build_path/x264
 emconfigure $source_path/x264/configure --enable-static --enable-pic --disable-cli  --disable-asm --disable-thread --host=i686-gnu --prefix="$build_path/out"
 emmake make install-lib-static "${MAKEFLAGS}"
 
-echo "Building ffmpeg"
-cd $source_path/ffmpeg
-git apply ../ffmpeg.patch
-mkdir -p $build_path/ffmpeg
-cd $build_path/ffmpeg
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl --enable-libx264
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg"
+# cd $source_path/ffmpeg
+# git apply ../ffmpeg.patch
+# mkdir -p $build_path/ffmpeg
+# cd $build_path/ffmpeg
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl --enable-libx264
+# emmake make "${MAKEFLAGS}"
 
 echo "Building ffmpeg-flac"
 mkdir -p $build_path/ffmpeg-flac
@@ -164,7 +164,7 @@ emmake make "${MAKEFLAGS}"
 
 echo "Building liba52"
 cd $source_path
-wget -nc https://liba52.sourceforge.io/files/a52dec-0.7.4.tar.gz
+wget -nc https://repository.timesys.com/buildsources/a/a52dec/a52dec-0.7.4/a52dec-0.7.4.tar.gz
 tar -xf a52dec-0.7.4.tar.gz
 mkdir -p $build_path/liba52
 cd $build_path/liba52
