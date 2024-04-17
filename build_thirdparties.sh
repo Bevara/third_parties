@@ -111,7 +111,7 @@ emmake make "${MAKEFLAGS}"
 echo "Building higway"
 mkdir -p $build_path/higway
 cd $build_path/higway
-emcmake cmake $source_path/highway -DCMAKE_C_FLAGS="-fpic" -DHWY_ENABLE_CONTRIBS=OFF -DHWY_ENABLE_EXAMPLES=OFF -DHWY_ENABLE_INSTAL=OFF -DHWY_ENABLE_TESTS=OFF  $CMAKE_BUILD_TYPE 
+emcmake cmake $source_path/highway -DCMAKE_C_FLAGS="-fpic" -DHWY_ENABLE_CONTRIBS=OFF -DHWY_ENABLE_EXAMPLES=OFF -DHWY_ENABLE_INSTAL=OFF -DHWY_ENABLE_TESTS=OFF  $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
 echo "Building brotli"
@@ -162,6 +162,12 @@ cd $build_path/ffmpeg-mpeg1
 emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=mpeg1video
 emmake make "${MAKEFLAGS}"
 
+echo "Building ffmpeg-hevc"
+mkdir -p $build_path/ffmpeg-hevc
+cd $build_path/ffmpeg-hevc
+emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=hevc
+emmake make "${MAKEFLAGS}"
+
 echo "Building liba52"
 cd $source_path
 wget -nc https://repository.timesys.com/buildsources/a/a52dec/a52dec-0.7.4/a52dec-0.7.4.tar.gz
@@ -180,5 +186,5 @@ emmake make "${MAKEFLAGS}"
 echo "Building vorbis"
 mkdir -p $build_path/vorbis
 cd $build_path/vorbis
-emcmake cmake $source_path/vorbis -DCMAKE_C_FLAGS="-fpic"  -DOGG_LIBRARY=$build_path/ogg  -DOGG_INCLUDE_DIR="$source_path/ogg/include;$build_path/ogg/include" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIBM=OFF -DBUILD_TESTING=OFF  $CMAKE_BUILD_TYPE 
+emcmake cmake $source_path/vorbis -DCMAKE_C_FLAGS="-fpic"  -DOGG_LIBRARY=$build_path/ogg  -DOGG_INCLUDE_DIR="$source_path/ogg/include;$build_path/ogg/include" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIBM=OFF -DBUILD_TESTING=OFF  $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
