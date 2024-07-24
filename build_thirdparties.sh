@@ -188,3 +188,25 @@ mkdir -p $build_path/vorbis
 cd $build_path/vorbis
 emcmake cmake $source_path/vorbis -DCMAKE_C_FLAGS="-fpic"  -DOGG_LIBRARY=$build_path/ogg  -DOGG_INCLUDE_DIR="$source_path/ogg/include;$build_path/ogg/include" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIBM=OFF -DBUILD_TESTING=OFF  $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
+
+echo "Building xvid"
+cd $source_path
+wget -nc https://downloads.xvid.com/downloads/xvidcore-1.3.7.tar.gz
+tar -xf xvidcore-1.3.7.tar.gz
+mkdir -p $build_path/xvidcore
+cd $source_path/xvidcore/build/generic
+emconfigure ./configure --disable-assembly --disable-pthread
+emmake make "${MAKEFLAGS}" libxvidcore.a
+cp $source_path/xvidcore/build/generic/=build/libxvidcore.a $build_path/xvidcore
+
+echo "Building libmad"
+cd $source_path
+wget -nc ftp://ftp.mars.org/pub/mpeg//libmad-0.15.1b.tar.gz
+tar -xf libmad-0.15.1b.tar.gz
+mkdir -p $build_path/libmad
+cd $build_path/libmad
+if test "$debuginfo" = "yes"; then
+    mad_flags+="--enable-debugging"
+fi
+emconfigure $source_path/libmad-0.15.1b/configure --enable-static --with-pic CFLAGS=-Wno-error=unused-command-line-argument --build=x86_64-unknown-linux-gnu $mad_flags
+emmake make "${MAKEFLAGS}"
