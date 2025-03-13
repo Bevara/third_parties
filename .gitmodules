@@ -43,3 +43,6 @@
 [submodule "theora"]
 	path = theora
 	url = https://github.com/xiph/theora.git
+[submodule "libmpeg2"]
+	path = libmpeg2
+	url = https://github.com/cisco-open-source/libmpeg2.git
