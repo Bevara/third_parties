@@ -170,11 +170,11 @@ emmake make "${MAKEFLAGS}"
 
 echo "Building liba52"
 cd $source_path
-wget -nc https://repository.timesys.com/buildsources/a/a52dec/a52dec-0.7.4/a52dec-0.7.4.tar.gz
-tar -xf a52dec-0.7.4.tar.gz
+wget -nc https://distfiles.adelielinux.org/source/a52dec/a52dec-0.8.0.tar.gz
+tar -xf a52dec-0.8.0.tar.gz
 mkdir -p $build_path/liba52
 cd $build_path/liba52
-emconfigure $source_path/a52dec-0.7.4/configure  --disable-oss CFLAGS="-fPIC"
+emconfigure $source_path/a52dec-0.8.0/configure  --disable-oss CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building ogg"
