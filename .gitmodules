@@ -46,3 +46,6 @@
 [submodule "libmpeg2"]
 	path = libmpeg2
 	url = https://github.com/cisco-open-source/libmpeg2.git
+[submodule "x265_git"]
+	path = x265_git
+	url = https://bitbucket.org/multicoreware/x265_git.git
