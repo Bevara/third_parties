@@ -80,13 +80,6 @@ fi
 emconfigure $source_path/gpac/configure $gpac_flags
 emmake make "${MAKEFLAGS}"
 
-
-if test "$debuginfo" = "yes"; then
-    gpac_flags+=" --enable-debug"
-fi
-emconfigure $source_path/gpac/configure $gpac_flags
-emmake make "${MAKEFLAGS}"
-
 echo "Building rapidjson"
 mkdir -p $build_path/rapidjson
 cd $build_path/rapidjson
