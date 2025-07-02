@@ -42,6 +42,7 @@ else
     CMAKE_BUILD_TYPE="-DCMAKE_BUILD_TYPE=Release"
 fi
 
+
 echo "Configuring emsdk"
 source $source_path/emsdk_vers.txt
 cd $source_path/emsdk
@@ -72,7 +73,7 @@ emmake make "${MAKEFLAGS}"
 echo "Building gpac minimal"
 mkdir -p $build_path/gpac_minimal
 cd $build_path/gpac_minimal
-gpac_flags="--disable-all"
+gpac_flags="--enable-pic --disable-all  --enable-fin --enable-fout --enable-writegen --enable-vout --enable-aout --enable-resample --enable-reframer --enable-webcodec --enable-compositor --enable-player --enable-scenegraph --enable-evg --enable-log --enable-3d --enable-threads"
 
 if test "$debuginfo" = "yes"; then
     gpac_flags+=" --enable-debug"
@@ -159,6 +160,18 @@ echo "Building ffmpeg-hevc"
 mkdir -p $build_path/ffmpeg-hevc
 cd $build_path/ffmpeg-hevc
 emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=hevc
+emmake make "${MAKEFLAGS}"
+
+echo "Building ffmpeg-dmx"
+mkdir -p $build_path/ffmpeg-dmx
+cd $build_path/ffmpeg-dmx
+emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-demuxer=matroska
+emmake make "${MAKEFLAGS}"
+
+echo "Building ffmpeg-full"
+mkdir -p $build_path/ffmpeg-full
+cd $build_path/ffmpeg-full
+emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl
 emmake make "${MAKEFLAGS}"
 
 echo "Building liba52"
