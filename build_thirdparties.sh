@@ -165,7 +165,7 @@ emmake make "${MAKEFLAGS}"
 echo "Building ffmpeg-dmx"
 mkdir -p $build_path/ffmpeg-dmx
 cd $build_path/ffmpeg-dmx
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-demuxer=matroska
+emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-decoders --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic  --disable-encoders --disable-parsers --disable-muxers --disable-protocols --disable-filters  --disable-indevs  --disable-bsfs --enable-protocol=file
 emmake make "${MAKEFLAGS}"
 
 echo "Building ffmpeg-full"
