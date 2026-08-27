@@ -9,6 +9,9 @@ for opt do
     esac
 done
 
+echo "Updating submodules"
+git submodule update --init
+
 echo "Setting environnement"
 find source path
 source_path="`echo $0 | sed -e 's#/build_thirdparties.sh##'`"
