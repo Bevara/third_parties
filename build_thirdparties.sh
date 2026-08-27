@@ -10,9 +10,6 @@ for opt do
 done
 
 echo "Setting environnement"
-mkdir -p third_parties
-cd third_parties
-
 find source path
 source_path="`echo $0 | sed -e 's#/build_thirdparties.sh##'`"
 source_path_used="yes"
@@ -70,16 +67,16 @@ fi
 emconfigure $source_path/gpac/configure $gpac_flags
 emmake make "${MAKEFLAGS}"
 
-echo "Building gpac minimal"
-mkdir -p $build_path/gpac_minimal
-cd $build_path/gpac_minimal
-gpac_flags="--enable-pic --disable-all  --enable-fin --enable-fout --enable-writegen --enable-vout --enable-aout --enable-resample --enable-reframer --enable-webcodec --enable-compositor --enable-player --enable-scenegraph --enable-evg --enable-log --enable-3d --enable-threads"
+# echo "Building gpac minimal"
+# mkdir -p $build_path/gpac_minimal
+# cd $build_path/gpac_minimal
+# gpac_flags="--enable-pic --disable-all  --enable-fin --enable-fout --enable-writegen --enable-vout --enable-aout --enable-resample --enable-reframer --enable-webcodec --enable-compositor --enable-player --enable-scenegraph --enable-evg --enable-log --enable-3d --enable-threads"
 
-if test "$debuginfo" = "yes"; then
-    gpac_flags+=" --enable-debug"
-fi
-emconfigure $source_path/gpac/configure $gpac_flags
-emmake make "${MAKEFLAGS}"
+# if test "$debuginfo" = "yes"; then
+#     gpac_flags+=" --enable-debug"
+# fi
+# emconfigure $source_path/gpac/configure $gpac_flags
+# emmake make "${MAKEFLAGS}"
 
 echo "Building rapidjson"
 mkdir -p $build_path/rapidjson
