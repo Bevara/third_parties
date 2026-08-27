@@ -55,3 +55,6 @@
 [submodule "LibRaw"]
 	path = LibRaw
 	url = https://github.com/LibRaw/LibRaw.git
+[submodule "libheif"]
+	path = libheif
+	url = https://github.com/strukturag/libheif.git

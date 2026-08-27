@@ -244,3 +244,11 @@ mkdir -p $build_path/libraw
 cd $build_path/libraw
 emconfigure $source_path/libraw/configure --disable-examples --disable-jasper
 emmake make "${MAKEFLAGS}"
+
+echo "Building libheif"
+mkdir -p $build_path/libheif
+cd $build_path/libheif
+CONFIGURE_ARGS="-DENABLE_MULTITHREADING_SUPPORT=OFF -DWITH_GDK_PIXBUF=OFF -DWITH_EXAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_PLUGIN_LOADING=OFF"
+EXTRA_EXE_LINKER_FLAGS="-lembind"
+emcmake cmake $source_path/libheif  $CONFIGURE_ARGS $CMAKE_BUILD_TYPE -DCMAKE_EXE_LINKER_FLAGS="${LIBRARY_LINKER_FLAGS} ${EXTRA_EXE_LINKER_FLAGS}"
+emmake make "${MAKEFLAGS}"
