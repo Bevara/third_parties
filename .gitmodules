@@ -49,3 +49,9 @@
 [submodule "x265_git"]
 	path = x265_git
 	url = https://bitbucket.org/multicoreware/x265_git.git
+[submodule "faad2"]
+	path = faad2
+	url = https://github.com/knik0/faad2.git
+[submodule "LibRaw"]
+	path = LibRaw
+	url = https://github.com/LibRaw/LibRaw.git

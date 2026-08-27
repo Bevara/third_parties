@@ -226,7 +226,7 @@ echo "Building libmpeg2"
 cd $source_path/libmpeg2
 mkdir -p $build_path/libmpeg2
 cd $build_path/libmpeg2
-emconfigure ../configure  --host=generic-unknown-linux-gnu --disable-sdl  --enable-static --with-pic
+emconfigure $source_path/libmpeg2/configure  --host=generic-unknown-linux-gnu --disable-sdl  --enable-static --with-pic
 emmake make "${MAKEFLAGS}"
 
 
@@ -234,5 +234,13 @@ echo "Building libfaad"
 cd $source_path/libfaad
 mkdir -p $build_path/libfaad
 cd $build_path/libfaad
-emconfigure ../configure  --with-pic --enable-static
+emcmake cmake $source_path/faad2 $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building libraw"
+cd $source_path/libraw
+autoreconf --install
+mkdir -p $build_path/libraw
+cd $build_path/libraw
+emconfigure $source_path/libraw/configure --disable-examples --disable-jasper
 emmake make "${MAKEFLAGS}"
