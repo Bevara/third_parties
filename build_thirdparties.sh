@@ -10,7 +10,7 @@ for opt do
 done
 
 echo "Updating submodules"
-git submodule update --init
+#git submodule update --init
 
 echo "Setting environnement"
 find source path
@@ -54,7 +54,7 @@ EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
 
 echo "Building emscripten libs"
-embuilder build libc libc++ libc++abi --pic
+embuilder build libc libc++ libc++abi zlib --pic
 
 echo "Building gpac"
 cd $source_path/gpac
@@ -118,7 +118,7 @@ emmake make "${MAKEFLAGS}"
 
 echo "Building libjxl"
 cd $source_path/libjxl
-git submodule update --init --recursive
+#git submodule update --init --recursive
 mkdir -p $build_path/libjxl
 cd $build_path/libjxl
 emcmake cmake $source_path/libjxl -DCMAKE_C_FLAGS="-fpic" -DBUILD_SHARED_LIBS=FALSE -DJPEGXL_ENABLE_FUZZERS=FALSE -DJPEGXL_ENABLE_DEVTOOLS=FALSE -DJPEGXL_ENABLE_TOOLS=FALSE -DJPEGXL_ENABLE_JPEGLI=FALSE -DJPEGXL_ENABLE_JPEGLI_LIBJPEG=FALSE -DJPEGXL_ENABLE_DOXYGEN=FALSE -DJPEGXL_ENABLE_MANPAGES=FALSE -DJPEGXL_ENABLE_BENCHMARK=FALSE -DJPEGXL_ENABLE_EXAMPLES=FALSE -DJPEGXL_BUNDLE_LIBPNG=FALSE -DJPEGXL_ENABLE_JNI=FALSE -DJPEGXL_ENABLE_SJPEG=FALSE -DJPEGXL_ENABLE_OPENEXR=FALSE -DJPEGXL_ENABLE_SKCMS=FALSE -DJPEGXL_BUNDLE_SKCMS=FALSE -DJPEGXL_ENABLE_VIEWERS=FALSE -DJPEGXL_ENABLE_TCMALLOC=FALSE -DJPEGXL_ENABLE_PLUGINS=FALSE -DJPEGXL_ENABLE_COVERAGE=FALSE -DJPEGXL_ENABLE_PROFILER=FALSE -DJPEGXL_ENABLE_SIZELESS_VECTORS=FALSE -DJPEGXL_ENABLE_TRANSCODE_JPEG=FALSE -DJPEGXL_ENABLE_BOXES=FALSE -DJPEGXL_STATIC=ON -DJPEGXL_WARNINGS_AS_ERRORS=FALSE -DBUILD_TESTING=FALSE $CMAKE_BUILD_TYPE
