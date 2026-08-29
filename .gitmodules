@@ -73,3 +73,6 @@
 [submodule "libaiff"]
 	path = libaiff
 	url = https://github.com/mtszb/libaiff.git
+[submodule "flac"]
+	path = flac
+	url = https://github.com/xiph/flac.git

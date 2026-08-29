@@ -305,5 +305,13 @@ cd $source_path/libaiff
 ./autogen.sh
 mkdir -p $build_path/libaiff
 cd $build_path/libaiff
-emconfigure $source_path/libtiff/configure --disable-shared --enable-static --disable-tools --disable-tests --disable-docs
+emconfigure $source_path/libaiff/configure --disable-shared --enable-static --disable-tools --disable-tests --disable-docs
+emmake make "${MAKEFLAGS}"
+
+echo "Building flac"
+cd $source_path/flac
+./autogen.sh
+mkdir -p $build_path/flac
+cd $build_path/flac
+emconfigure $source_path/flac/configure --disable-shared --enable-static --disable-programs --disable-examples --disable-ogg
 emmake make "${MAKEFLAGS}"
