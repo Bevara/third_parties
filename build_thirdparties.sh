@@ -335,3 +335,11 @@ mkdir -p $build_path/mpg123
 cd $build_path/mpg123
 emconfigure $source_path/mpg123/configure CFLAGS="-fPIC -O2" --disable-shared --enable-static --disable-modules --disable-audiolibs --disable-mpg123-surround --with-cpu=generic --disable-aesl
 emmake make "${MAKEFLAGS}"
+
+echo "Building nestegg"
+cd $source_path/nestegg
+autoreconf -ivf
+mkdir -p $build_path/nestegg
+cd $build_path/nestegg
+emconfigure $source_path/nestegg/configure --disable-shared --enable-static
+emmake make "${MAKEFLAGS}"

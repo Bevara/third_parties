@@ -85,3 +85,6 @@
 [submodule "freepats"]
 	path = freepats
 	url = https://github.com/feross/freepats.git
+[submodule "nestegg"]
+	path = nestegg
+	url = https://github.com/mozilla/nestegg.git
