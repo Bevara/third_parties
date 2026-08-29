@@ -70,3 +70,6 @@
 [submodule "libtiff"]
 	path = libtiff
 	url = https://github.com/libsdl-org/libtiff.git
+[submodule "libaiff"]
+	path = libaiff
+	url = https://github.com/mtszb/libaiff.git

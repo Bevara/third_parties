@@ -299,3 +299,11 @@ mkdir -p $build_path/libtiff
 cd $build_path/libtiff
 emconfigure $source_path/libtiff/configure --disable-shared --disable-tools --disable-tests --disable-contrib --disable-docs
 emmake make "${MAKEFLAGS}"
+
+echo "Building libaiff"
+cd $source_path/libaiff
+./autogen.sh
+mkdir -p $build_path/libaiff
+cd $build_path/libaiff
+emconfigure $source_path/libtiff/configure --disable-shared --enable-static --disable-tools --disable-tests --disable-docs
+emmake make "${MAKEFLAGS}"
