@@ -70,16 +70,20 @@ fi
 emconfigure $source_path/gpac/configure $gpac_flags
 emmake make "${MAKEFLAGS}"
 
-# echo "Building gpac minimal"
-# mkdir -p $build_path/gpac_minimal
-# cd $build_path/gpac_minimal
-# gpac_flags="--enable-pic --disable-all  --enable-fin --enable-fout --enable-writegen --enable-vout --enable-aout --enable-resample --enable-reframer --enable-webcodec --enable-compositor --enable-player --enable-scenegraph --enable-evg --enable-log --enable-3d --enable-threads"
+echo "Building gpac minimal"
+mkdir -p $build_path/gpac_minimal
+cd $build_path/gpac_minimal
+gpac_flags="--enable-pic --disable-all --enable-fin --enable-fout --enable-writegen --enable-resample --enable-reframer --enable-log --enable-isoff --enable-isoff-write --enable-isoff-frag --enable-isoff-hint --enable-isoff-hds --disable-qjs --use-png=no --use-jpeg=no --use-vorbis=no --disable-ogg --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
-# if test "$debuginfo" = "yes"; then
-#     gpac_flags+=" --enable-debug"
-# fi
-# emconfigure $source_path/gpac/configure $gpac_flags
-# emmake make "${MAKEFLAGS}"
+if test "$debuginfo" = "yes"; then
+    gpac_flags+=" --enable-debug"
+fi
+emconfigure $source_path/gpac/configure $gpac_flags
+# "lib" only: the default "all" target also links the gpac/mp4box CLI
+# tools, which need filters (http/net, isobmff writers, ...) this minimal
+# build deliberately drops via --disable-all, so that link fails. We only
+# need libgpac_static.a to embed into solver_minimal.
+emmake make lib "${MAKEFLAGS}"
 
 echo "Building rapidjson"
 mkdir -p $build_path/rapidjson
