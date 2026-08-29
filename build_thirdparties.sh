@@ -73,7 +73,7 @@ emmake make "${MAKEFLAGS}"
 echo "Building gpac minimal"
 mkdir -p $build_path/gpac_minimal
 cd $build_path/gpac_minimal
-gpac_flags="--enable-pic --disable-all --enable-fin --enable-fout --enable-writegen --enable-resample --enable-reframer --enable-log --enable-isoff --enable-isoff-write --enable-isoff-frag --enable-isoff-hint --enable-isoff-hds --disable-qjs --use-png=no --use-jpeg=no --use-vorbis=no --disable-ogg --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
+gpac_flags="--enable-pic --disable-all --enable-fin --enable-fout --enable-writegen --enable-resample --enable-reframer --enable-log --disable-qjs --use-png=no --use-jpeg=no --use-vorbis=no --disable-ogg --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
 if test "$debuginfo" = "yes"; then
     gpac_flags+=" --enable-debug"
