@@ -291,3 +291,11 @@ cd $build_path/timidity
 emconfigure $source_path/timidity/configure CFLAGS="-std=gnu89 -Wno-implicit-function-declaration -Wno-implicit-int"
 emmake make "${MAKEFLAGS}" -C libarc
 emmake make "${MAKEFLAGS}" -C libunimod
+
+echo "Building libtiff"
+cd $source_path/libtiff
+./autogen.sh
+mkdir -p $build_path/libtiff
+cd $build_path/libtiff
+emconfigure $source_path/libtiff/configure --disable-shared --disable-tools --disable-tests --disable-contrib --disable-docs
+emmake make "${MAKEFLAGS}"

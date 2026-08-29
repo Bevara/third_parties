@@ -67,3 +67,6 @@
 [submodule "timidity"]
 	path = timidity
 	url = https://github.com/geofft/timidity.git
+[submodule "libtiff"]
+	path = libtiff
+	url = https://github.com/libsdl-org/libtiff.git
