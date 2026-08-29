@@ -58,3 +58,12 @@
 [submodule "libheif"]
 	path = libheif
 	url = https://github.com/strukturag/libheif.git
+[submodule "libde265"]
+	path = libde265
+	url = https://github.com/strukturag/libde265.git
+[submodule "libaom"]
+	path = libaom
+	url = https://github.com/darkskygit/libaom.git
+[submodule "dav1d"]
+	path = dav1d
+	url = https://github.com/videolan/dav1d.git
