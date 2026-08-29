@@ -79,3 +79,6 @@
 [submodule "opus"]
 	path = opus
 	url = https://github.com/xiph/opus.git
+[submodule "mpg123"]
+	path = mpg123
+	url = https://github.com/libsdl-org/mpg123.git

@@ -322,3 +322,12 @@ mkdir -p $build_path/opus
 cd $build_path/opus
 emcmake cmake $source_path/opus  $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
+
+
+echo "Building mpg123"
+cd $source_path/mpg123
+touch aclocal.m4 configure Makefile.in src/config.h.in
+mkdir -p $build_path/mpg123
+cd $build_path/mpg123
+emconfigure $source_path/mpg123/configure CFLAGS="-fPIC -O2" --disable-shared --enable-static --disable-modules --disable-audiolibs --disable-mpg123-surround --with-cpu=generic --disable-aesl
+emmake make "${MAKEFLAGS}"
