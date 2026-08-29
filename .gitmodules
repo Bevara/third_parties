@@ -82,3 +82,6 @@
 [submodule "mpg123"]
 	path = mpg123
 	url = https://github.com/libsdl-org/mpg123.git
+[submodule "freepats"]
+	path = freepats
+	url = https://github.com/feross/freepats.git

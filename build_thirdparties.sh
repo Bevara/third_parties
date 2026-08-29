@@ -269,18 +269,18 @@ cd $build_path/libaom
 emcmake cmake $source_path/libaom  $CMAKE_BUILD_TYPE -DAOM_TARGET_CPU=generic -DENABLE_DOCS=OFF -DENABLE_TESTS=OFF -DENABLE_EXAMPLES=OFF -DENABLE_TOOLS=OFF -DBUILD_SHARED_LIBS=OFF
 emmake make "${MAKEFLAGS}"
 
-echo "Building dav1d"
-mkdir -p $build_path/dav1d
-cd $build_path/dav1d
-meson setup build \
-  --cross-file cross_wasm.txt \
-  -Ddefault_library=static \
-  -Denable_asm=false \
-  -Denable_tools=false \
-  -Denable_tests=false \
-  --buildtype release
+# echo "Building dav1d"
+# mkdir -p $build_path/dav1d
+# cd $build_path/dav1d
+# meson setup build \
+#   --cross-file cross_wasm.txt \
+#   -Ddefault_library=static \
+#   -Denable_asm=false \
+#   -Denable_tools=false \
+#   -Denable_tests=false \
+#   --buildtype release
 
-ninja -C build
+# ninja -C build
 
 
 echo "Building timidity"
