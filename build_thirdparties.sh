@@ -65,7 +65,7 @@ cd $build_path/gpac
 gpac_flags="--enable-pic --use-xvid=no --disable-qjs --use-png=no --use-jpeg=no --disable-ogg --use-vorbis=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
 if test "$debuginfo" = "yes"; then
-    gpac_flags+=" --enable-debug"
+    gpac_flags+=" --enable-debug --extra-cflags=-g"
 fi
 emconfigure $source_path/gpac/configure $gpac_flags
 emmake make "${MAKEFLAGS}"
@@ -76,7 +76,12 @@ cd $build_path/gpac_minimal
 gpac_flags="--enable-pic --disable-all --enable-fin --enable-fout --enable-writegen --enable-resample --enable-reframer --enable-log --disable-qjs --use-png=no --use-jpeg=no --use-vorbis=no --disable-ogg --use-xvid=no --extra-libs=-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
 if test "$debuginfo" = "yes"; then
-    gpac_flags+=" --enable-debug"
+    # --enable-debug alone only drops optimization to -O0 and keeps
+    # asserts (see gpac/configure); it never actually adds -g, so
+    # libgpac_static.a ends up with zero debug symbols regardless. The
+    # EMCCFLAGS="-g" set above is a dead variable (never exported/used) -
+    # --extra-cflags is the actual passthrough gpac/configure supports.
+    gpac_flags+=" --enable-debug --extra-cflags=-g"
 fi
 emconfigure $source_path/gpac/configure $gpac_flags
 # "lib" only: the default "all" target also links the gpac/mp4box CLI
@@ -363,15 +368,10 @@ fi
 
 mkdir -p $build_path/poppler
 cd $build_path/poppler
-emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic --DENABLE_LIBJPEG=OFF -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DENABLE_BOOST=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DENABLE_BOOST=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 emmake make "${MAKEFLAGS}"
 
-echo "Building libbpg (decoder only)"
-# libbpg ships a hand-written Makefile only (no CMakeLists.txt of its
-# own); rather than committing one inside the libbpg submodule itself
-# (which a plain "git submodule update --init" would discard, breaking
-# CI reproducibility), the CMakeLists.txt lives here in this repo and
-# gets copied into place before configuring.
+echo "Building libbpg"
 cp $source_path/libbpg-CMakeLists.txt $source_path/libbpg/CMakeLists.txt
 mkdir -p $build_path/libbpg
 cd $build_path/libbpg
