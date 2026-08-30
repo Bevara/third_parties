@@ -354,14 +354,22 @@ emmake make "${MAKEFLAGS}"
 
 echo "Building poppler"
 cd $source_path/poppler
-PATCH_FILE="$source_path/poppler.patch"
-echo $PATCH_FILE
-if git apply --check "$PATCH_FILE" >/dev/null 2>&1; then
+PATCH_FILE_POPPLER="$source_path/poppler.patch"
+echo $PATCH_FILE_POPPLER
+if git apply --check "$PATCH_FILE_POPPLER" >/dev/null 2>&1; then
     echo "Applying poppler patch"
-    git apply "$PATCH_FILE"
+    git apply "$PATCH_FILE_POPPLER"
 fi
 
 mkdir -p $build_path/poppler
 cd $build_path/poppler
 emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 emmake make "${MAKEFLAGS}"
+
+echo "Building libavif"
+cd $source_path/libavif
+mkdir -p $build_path/libavif
+cd $build_path/libavif
+emcmake cmake $source_path/libavif  $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF -DAVIF_CODEC_AOM=OFF -DAVIF_LIBYUV=OFF -DAVIF_LIBSHARPYUV=OFF -DAVIF_JPEG=OFF -DAVIF_ZLIBPNG=OFF -DAVIF_BUILD_APPS=OFF
+emmake make "${MAKEFLAGS}"
+

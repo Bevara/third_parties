@@ -94,3 +94,12 @@
 [submodule "poppler"]
 	path = poppler
 	url = https://gitlab.freedesktop.org/poppler/poppler.git
+[submodule "libavif"]
+	path = libavif
+	url = https://github.com/AOMediaCodec/libavif.git
+[submodule "qoi"]
+	path = qoi
+	url = https://github.com/phoboslab/qoi.git
+[submodule "libbpg"]
+	path = libbpg
+	url = https://github.com/mirrorer/libbpg.git
