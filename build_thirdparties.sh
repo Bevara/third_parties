@@ -385,3 +385,9 @@ cd $build_path/libavif
 emcmake cmake $source_path/libavif  $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF -DAVIF_CODEC_AOM=OFF -DAVIF_LIBYUV=OFF -DAVIF_LIBSHARPYUV=OFF -DAVIF_JPEG=OFF -DAVIF_ZLIBPNG=OFF -DAVIF_BUILD_APPS=OFF
 emmake make "${MAKEFLAGS}"
 
+echo "Building libx265"
+cd $source_path/x265_git
+mkdir -p $build_path/x265_git
+cd $build_path/x265_git
+emcmake cmake $source_path/x265_git/source $CMAKE_BUILD_TYPE -DENABLE_ASSEMBLY=OFF -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DX64=1 -DX86_64=1
+emmake make "${MAKEFLAGS}"
