@@ -91,3 +91,6 @@
 [submodule "libvpx"]
 	path = libvpx
 	url = https://github.com/webmproject/libvpx.git
+[submodule "poppler"]
+	path = poppler
+	url = https://gitlab.freedesktop.org/poppler/poppler.git
