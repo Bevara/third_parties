@@ -88,3 +88,6 @@
 [submodule "nestegg"]
 	path = nestegg
 	url = https://github.com/mozilla/nestegg.git
+[submodule "libvpx"]
+	path = libvpx
+	url = https://github.com/webmproject/libvpx.git
