@@ -348,7 +348,7 @@ echo "Building libvpx"
 cd $source_path/libvpx
 mkdir -p $build_path/libvpx
 cd $build_path/libvpx
-emconfigure $source_path/libvpx/configure --target=generic-gnu --enable-static --disable-shared --disable-multithread --disable-runtime-cpu-detect --disable-examples --disable-tools --disable-unit-tests --disable-docs
+emconfigure $source_path/libvpx/configure --target=generic-gnu --enable-static --disable-shared --enable-pic --disable-multithread --disable-runtime-cpu-detect --disable-examples --disable-tools --disable-unit-tests --disable-docs --disable-vp8-encoder --disable-vp9-encoder
 emmake make "${MAKEFLAGS}"
 
 
@@ -363,7 +363,19 @@ fi
 
 mkdir -p $build_path/poppler
 cd $build_path/poppler
-emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic --DENABLE_LIBJPEG=OFF -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic --DENABLE_LIBJPEG=OFF -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DENABLE_BOOST=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+emmake make "${MAKEFLAGS}"
+
+echo "Building libbpg (decoder only)"
+# libbpg ships a hand-written Makefile only (no CMakeLists.txt of its
+# own); rather than committing one inside the libbpg submodule itself
+# (which a plain "git submodule update --init" would discard, breaking
+# CI reproducibility), the CMakeLists.txt lives here in this repo and
+# gets copied into place before configuring.
+cp $source_path/libbpg-CMakeLists.txt $source_path/libbpg/CMakeLists.txt
+mkdir -p $build_path/libbpg
+cd $build_path/libbpg
+emcmake cmake $source_path/libbpg $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
 echo "Building libavif"
