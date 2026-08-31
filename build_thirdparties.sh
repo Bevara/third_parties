@@ -306,7 +306,7 @@ cd $source_path/libtiff
 ./autogen.sh
 mkdir -p $build_path/libtiff
 cd $build_path/libtiff
-emconfigure $source_path/libtiff/configure --disable-shared --disable-tools --disable-tests --disable-contrib --disable-docs
+emconfigure $source_path/libtiff/configure --disable-shared --disable-tools --disable-tests --disable-contrib --disable-docs CFLAGS="-fPIC" CXXFLAGS="-fPIC" --with-pic
 emmake make "${MAKEFLAGS}"
 
 echo "Building libaiff"
