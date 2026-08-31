@@ -391,3 +391,12 @@ mkdir -p $build_path/x265_git
 cd $build_path/x265_git
 emcmake cmake $source_path/x265_git/source $CMAKE_BUILD_TYPE -DENABLE_ASSEMBLY=OFF -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DX64=1 -DX86_64=1
 emmake make "${MAKEFLAGS}"
+
+echo "Building lame"
+cd $source_path
+wget -nc https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz
+tar -xf lame-4.0.tar.gz
+mkdir -p $build_path/lame-4.0
+cd $build_path/lame-4.0
+CFLAGS="-fPIC -O3" emconfigure $source_path/lame-4.0/configure --enable-static --disable-shared --disable-decoder --disable-frontend --disable-nasm --host=generic-unknown-linux-gnu
+emmake make "${MAKEFLAGS}"
