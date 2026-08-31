@@ -400,3 +400,10 @@ mkdir -p $build_path/lame-4.0
 cd $build_path/lame-4.0
 CFLAGS="-fPIC -O3" emconfigure $source_path/lame-4.0/configure --enable-static --disable-shared --disable-decoder --disable-frontend --disable-nasm --host=generic-unknown-linux-gnu
 emmake make "${MAKEFLAGS}"
+
+echo "Building fdk-aac"
+cd $source_path/fdk-aac
+mkdir -p $build_path/fdk-aac
+cd $build_path/fdk-aac
+emcmake cmake $source_path/fdk-aac $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF
+emmake make "${MAKEFLAGS}"

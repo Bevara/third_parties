@@ -103,3 +103,6 @@
 [submodule "libbpg"]
 	path = libbpg
 	url = https://github.com/mirrorer/libbpg.git
+[submodule "fdk-aac"]
+	path = fdk-aac
+	url = https://github.com/mstorsjo/fdk-aac.git
