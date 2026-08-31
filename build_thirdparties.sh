@@ -329,7 +329,7 @@ echo "Building opus"
 cd $source_path/opus
 mkdir -p $build_path/opus
 cd $build_path/opus
-emcmake cmake $source_path/opus  $CMAKE_BUILD_TYPE
+emcmake cmake $source_path/opus  $CMAKE_BUILD_TYPE -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 emmake make "${MAKEFLAGS}"
 
 
