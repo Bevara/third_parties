@@ -297,7 +297,7 @@ cd $source_path/timidity
 autoreconf -fiv
 mkdir -p $build_path/timidity
 cd $build_path/timidity
-emconfigure $source_path/timidity/configure CFLAGS="-std=gnu89 -Wno-implicit-function-declaration -Wno-implicit-int"
+emconfigure $source_path/timidity/configure CFLAGS="-std=gnu89 -Wno-implicit-function-declaration -Wno-implicit-int -fPIC"
 emmake make "${MAKEFLAGS}" -C libarc
 emmake make "${MAKEFLAGS}" -C libunimod
 
