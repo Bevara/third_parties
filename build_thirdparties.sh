@@ -146,42 +146,42 @@ emconfigure $source_path/x264/configure --enable-static --enable-pic --disable-c
 emmake make install-lib-static "${MAKEFLAGS}"
 
 
-echo "Building ffmpeg-x264"
-export EM_PKG_CONFIG_PATH=$build_path/out/lib/pkgconfig
-mkdir -p $build_path/ffmpeg-x264
-cd $build_path/ffmpeg-x264
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl --enable-libx264
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg-x264"
+# export EM_PKG_CONFIG_PATH=$build_path/out/lib/pkgconfig
+# mkdir -p $build_path/ffmpeg-x264
+# cd $build_path/ffmpeg-x264
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl --enable-libx264
+# emmake make "${MAKEFLAGS}"
 
-echo "Building ffmpeg-flac"
-mkdir -p $build_path/ffmpeg-flac
-cd $build_path/ffmpeg-flac
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=flac
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg-flac"
+# mkdir -p $build_path/ffmpeg-flac
+# cd $build_path/ffmpeg-flac
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=flac
+# emmake make "${MAKEFLAGS}"
 
-echo "Building ffmpeg-mpeg1"
-mkdir -p $build_path/ffmpeg-mpeg1
-cd $build_path/ffmpeg-mpeg1
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=mpeg1video
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg-mpeg1"
+# mkdir -p $build_path/ffmpeg-mpeg1
+# cd $build_path/ffmpeg-mpeg1
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=mpeg1video
+# emmake make "${MAKEFLAGS}"
 
-echo "Building ffmpeg-hevc"
-mkdir -p $build_path/ffmpeg-hevc
-cd $build_path/ffmpeg-hevc
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=hevc
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg-hevc"
+# mkdir -p $build_path/ffmpeg-hevc
+# cd $build_path/ffmpeg-hevc
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=hevc
+# emmake make "${MAKEFLAGS}"
 
-echo "Building ffmpeg-dmx"
-mkdir -p $build_path/ffmpeg-dmx
-cd $build_path/ffmpeg-dmx
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-decoders --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic  --disable-encoders --disable-parsers --disable-muxers --disable-protocols --disable-filters  --disable-indevs  --disable-bsfs --enable-protocol=file
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg-dmx"
+# mkdir -p $build_path/ffmpeg-dmx
+# cd $build_path/ffmpeg-dmx
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-decoders --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic  --disable-encoders --disable-parsers --disable-muxers --disable-protocols --disable-filters  --disable-indevs  --disable-bsfs --enable-protocol=file
+# emmake make "${MAKEFLAGS}"
 
-echo "Building ffmpeg-full"
-mkdir -p $build_path/ffmpeg-full
-cd $build_path/ffmpeg-full
-emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl
-emmake make "${MAKEFLAGS}"
+# echo "Building ffmpeg-full"
+# mkdir -p $build_path/ffmpeg-full
+# cd $build_path/ffmpeg-full
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl
+# emmake make "${MAKEFLAGS}"
 
 echo "Building liba52"
 cd $source_path
