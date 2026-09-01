@@ -210,7 +210,7 @@ wget -nc https://downloads.xvid.com/downloads/xvidcore-1.3.7.tar.gz
 tar -xf xvidcore-1.3.7.tar.gz
 mkdir -p $build_path/xvidcore
 cd $source_path/xvidcore/build/generic
-emconfigure ./configure --disable-assembly --disable-pthread
+emconfigure ./configure --disable-assembly --disable-pthread CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}" libxvidcore.a
 cp $source_path/xvidcore/build/generic/=build/libxvidcore.a $build_path/xvidcore
 
@@ -254,7 +254,7 @@ cd $source_path/libraw
 autoreconf --install
 mkdir -p $build_path/libraw
 cd $build_path/libraw
-emconfigure $source_path/libraw/configure --disable-examples --disable-jasper
+emconfigure $source_path/libraw/configure --disable-examples --disable-jasper CFLAGS="-fPIC" CXXFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libheif"
@@ -314,7 +314,7 @@ cd $source_path/libaiff
 ./autogen.sh
 mkdir -p $build_path/libaiff
 cd $build_path/libaiff
-emconfigure $source_path/libaiff/configure --disable-shared --enable-static --disable-tools --disable-tests --disable-docs
+emconfigure $source_path/libaiff/configure --disable-shared --enable-static --disable-tools --disable-tests --disable-docs CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building flac"
@@ -322,7 +322,7 @@ cd $source_path/flac
 ./autogen.sh
 mkdir -p $build_path/flac
 cd $build_path/flac
-emconfigure $source_path/flac/configure --disable-shared --enable-static --disable-programs --disable-examples --disable-ogg
+emconfigure $source_path/flac/configure --disable-shared --enable-static --disable-programs --disable-examples --disable-ogg CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building opus"
@@ -346,7 +346,7 @@ cd $source_path/nestegg
 autoreconf -ivf
 mkdir -p $build_path/nestegg
 cd $build_path/nestegg
-emconfigure $source_path/nestegg/configure --disable-shared --enable-static
+emconfigure $source_path/nestegg/configure --disable-shared --enable-static CFLAGS="-fPIC"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libvpx"
