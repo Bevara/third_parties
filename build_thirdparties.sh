@@ -353,8 +353,8 @@ echo "Building libvpx"
 cd $source_path/libvpx
 mkdir -p $build_path/libvpx
 cd $build_path/libvpx
-emconfigure $source_path/libvpx/configure --target=generic-gnu --enable-static --disable-shared --enable-pic --disable-multithread --disable-runtime-cpu-detect --disable-examples --disable-tools --disable-unit-tests --disable-docs --disable-vp8-encoder --disable-vp9-encoder
-emmake make "${MAKEFLAGS}"
+CFLAGS="-fPIC" CXXFLAGS="-fPIC"  emconfigure $source_path/libvpx/configure --target=generic-gnu --enable-static --disable-shared --enable-pic --disable-multithread --disable-runtime-cpu-detect --disable-examples --disable-tools --disable-unit-tests --disable-docs --disable-vp8-encoder --disable-vp9-encoder
+CFLAGS="-fPIC" CXXFLAGS="-fPIC"  emmake make "${MAKEFLAGS}"
 
 
 echo "Building poppler"
