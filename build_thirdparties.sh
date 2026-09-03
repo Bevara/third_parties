@@ -265,7 +265,7 @@ cd $source_path/libraw
 autoreconf --install
 mkdir -p $build_path/libraw
 cd $build_path/libraw
-emconfigure $source_path/libraw/configure --disable-examples --disable-jasper --disable-openmp CFLAGS="-fPIC" CXXFLAGS="-fPIC"
+emconfigure $source_path/libraw/configure --disable-examples --disable-jasper --disable-openmp CFLAGS="-fPIC -fvisibility=hidden" CXXFLAGS="-fPIC -fvisibility=hidden -fvisibility-inlines-hidden"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libde265"
