@@ -106,3 +106,6 @@
 [submodule "fdk-aac"]
 	path = fdk-aac
 	url = https://github.com/mstorsjo/fdk-aac.git
+[submodule "h264bsd"]
+	path = h264bsd
+	url = https://github.com/oneam/h264bsd.git

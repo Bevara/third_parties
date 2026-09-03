@@ -227,6 +227,16 @@ fi
 emconfigure $source_path/libmad-0.15.1b/configure --enable-static --with-pic CFLAGS=-Wno-error=unused-command-line-argument --build=x86_64-unknown-linux-gnu $mad_flags
 emmake make "${MAKEFLAGS}"
 
+echo "Building h264bsd"
+mkdir -p $build_path/h264bsd
+cd $build_path/h264bsd
+h264bsd_cflags="-fPIC -O3"
+if test "$debuginfo" = "yes"; then
+    h264bsd_cflags="-fPIC -O0 -g"
+fi
+emcc -c $h264bsd_cflags -I$source_path/h264bsd/src $source_path/h264bsd/src/*.c
+emar rcs libh264bsd.a *.o
+
 echo "Building theora"
 cd $source_path/theora
 ./autogen.sh
