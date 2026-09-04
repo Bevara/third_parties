@@ -257,7 +257,7 @@ echo "Building libfaad"
 cd $source_path/libfaad
 mkdir -p $build_path/libfaad
 cd $build_path/libfaad
-emcmake cmake $source_path/faad2 $CMAKE_BUILD_TYPE
+emcmake cmake $source_path/faad2 $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF -DFAAD2_BUILD_PROGRAMS=OFF -DFAAD2_BUILD_TESTS=OFF -DFAAD2_BUILD_EXAMPLES=OFF -DFAAD2_ENABLE_STATIC=ON -DFAAD2_ENABLE_PIC=ON
 emmake make "${MAKEFLAGS}"
 
 echo "Building libraw"
@@ -311,6 +311,7 @@ emconfigure $source_path/timidity/configure CFLAGS="-std=gnu89 -Wno-implicit-fun
 emmake make "${MAKEFLAGS}" -C libarc
 emmake make "${MAKEFLAGS}" -C libunimod
 
+
 echo "Building libtiff"
 cd $source_path/libtiff
 ./autogen.sh
@@ -332,8 +333,8 @@ cd $source_path/flac
 ./autogen.sh
 mkdir -p $build_path/flac
 cd $build_path/flac
-emconfigure $source_path/flac/configure --disable-shared --enable-static --disable-programs --disable-examples --disable-ogg CFLAGS="-fPIC"
-emmake make "${MAKEFLAGS}"
+CFLAGS="-fPIC" emconfigure $source_path/flac/configure --disable-shared --enable-static --disable-programs --disable-examples --disable-ogg PANDOC=no
+CFLAGS="-fPIC" emmake make "${MAKEFLAGS}"
 
 echo "Building opus"
 cd $source_path/opus
@@ -378,7 +379,7 @@ fi
 
 mkdir -p $build_path/poppler
 cd $build_path/poppler
-emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DENABLE_BOOST=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+emcmake cmake $source_path/poppler  $CMAKE_BUILD_TYPE -DFONT_CONFIGURATION=generic -DENABLE_LIBOPENJPEG=OFF -DENABLE_CMS=none -DENABLE_DCTDECODER=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_LCMS=OFF -DENABLE_LIBCURL=OFF -DENABLE_BOOST=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_LIBJPEG=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 emmake make "${MAKEFLAGS}"
 
 echo "Building libbpg"
