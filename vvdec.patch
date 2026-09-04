@@ -1,0 +1,56 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b3c5c9b..e040ffa 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -191,7 +191,16 @@ if( VVDEC_ENABLE_ARM_SIMD )
+ endif()
+ 
+ if( VVDEC_TARGET_ARCH STREQUAL "WASM" )
+-  add_compile_options( -pthread )
++  # Bevara: the player links vvdec into a wasm SIDE MODULE loaded next to a
++  # main module built without pthreads (see filters/third_parties/build_thirdparties.sh:
++  # gpac, ffmpeg and every other codec here are built single-threaded). Objects
++  # compiled with -pthread use shared memory + atomics and cannot be linked into
++  # that non-pthread module, so make the flag opt-out instead of unconditional.
++  # Default stays ON, so a plain upstream build is unchanged.
++  set( VVDEC_ENABLE_WASM_PTHREADS ON CACHE BOOL "Build the WASM target with pthread support" )
++  if( VVDEC_ENABLE_WASM_PTHREADS )
++    add_compile_options( -pthread )
++  endif()
+   add_link_options(
+     --bind
+     -sWASM_BIGINT
+@@ -332,8 +341,9 @@ endif()
+     set( VVDEC_ENABLE_ITT OFF CACHE BOOL "Enable Intel Runtime Support for Profiling" )
+ #endif()
+ 
+-# set c++14
+-set( CMAKE_CXX_STANDARD 14 )
++# set c++17
++# Bevara: C++14 is not enough for the emscripten 6.0.8 libc++ headers used here.
++set( CMAKE_CXX_STANDARD 17 )
+ set( CMAKE_CXX_EXTENSIONS OFF )
+ set( CMAKE_CXX_STANDARD_REQUIRED ON )
+ 
+diff --git a/source/Lib/vvdec/CMakeLists.txt b/source/Lib/vvdec/CMakeLists.txt
+index a7af931..f300ed3 100644
+--- a/source/Lib/vvdec/CMakeLists.txt
++++ b/source/Lib/vvdec/CMakeLists.txt
+@@ -14,6 +14,17 @@ endif()
+ # get source files
+ file( GLOB BASE_SRC_FILES CONFIGURE_DEPENDS "*.cpp"  "../CommonLib/*.cpp"  "../Utilities/*.cpp" "../DecoderLib/*.cpp")
+ 
++# Bevara: wasm_bindings.cpp only exposes vvdec to JS through embind, for vvdec's
++# own browser demo; the player drives the plain C API from a gpac filter and
++# never loads those bindings. It also no longer compiles against the embind
++# headers shipped with emscripten 6.0.8, which reject implicitly bound raw
++# pointers (vvdecFrame*, vvdecPlane*, ...) without an allow_raw_pointer<>
++# policy. Default ON, so a plain upstream build is unchanged.
++set( VVDEC_ENABLE_WASM_BINDINGS ON CACHE BOOL "Build the embind JS bindings (WASM target only)" )
++if( NOT VVDEC_ENABLE_WASM_BINDINGS )
++  list( REMOVE_ITEM BASE_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/wasm_bindings.cpp" )
++endif()
++
+ # get include files
+ file( GLOB BASE_INC_FILES CONFIGURE_DEPENDS "*.h" "../CommonLib/*.h"  "../Utilities/*.h" "../DecoderLib/*.h" )
+ 

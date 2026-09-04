@@ -109,3 +109,6 @@
 [submodule "h264bsd"]
 	path = h264bsd
 	url = https://github.com/oneam/h264bsd.git
+[submodule "vvdec"]
+	path = vvdec
+	url = https://github.com/fraunhoferhhi/vvdec.git

@@ -257,7 +257,7 @@ echo "Building libfaad"
 cd $source_path/libfaad
 mkdir -p $build_path/libfaad
 cd $build_path/libfaad
-emcmake cmake $source_path/faad2 $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF -DFAAD2_BUILD_PROGRAMS=OFF -DFAAD2_BUILD_TESTS=OFF -DFAAD2_BUILD_EXAMPLES=OFF -DFAAD2_ENABLE_STATIC=ON -DFAAD2_ENABLE_PIC=ON
+emcmake cmake $source_path/faad2 $CMAKE_BUILD_TYPE -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF -DFAAD2_BUILD_PROGRAMS=OFF -DFAAD2_BUILD_TESTS=OFF -DFAAD2_BUILD_EXAMPLES=OFF -DFAAD2_ENABLE_STATIC=ON -DFAAD2_ENABLE_PIC=ON
 emmake make "${MAKEFLAGS}"
 
 echo "Building libraw"
@@ -418,3 +418,58 @@ mkdir -p $build_path/fdk-aac
 cd $build_path/fdk-aac
 emcmake cmake $source_path/fdk-aac $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF
 emmake make "${MAKEFLAGS}"
+
+echo "Building vvdec"
+# The vvdec submodule must stay on the v3.2.0 tag. On master as of
+# v3.2.0-30-g81156d6 ("make VPS, SPS, PPS shared_ptrs also" and following),
+# vvdec::Picture::finalInit dereferences a null pointer and the decoder
+# segfaults after ~10 pictures - reproduced with the stock upstream vvdecapp
+# built natively, single- and multi-threaded, so it is not specific to this
+# wasm build or to the filter driving it.
+cd $source_path/vvdec
+# Same idiom as poppler above: the local adaptations (C++17, making the WASM
+# -pthread compile flag opt-out, and dropping the embind bindings) live in a
+# patch file instead of an in-place perl rewrite, so re-running this script is
+# idempotent.
+PATCH_FILE_VVDEC="$source_path/vvdec.patch"
+if git apply --check "$PATCH_FILE_VVDEC" >/dev/null 2>&1; then
+    echo "Applying vvdec patch"
+    git apply "$PATCH_FILE_VVDEC"
+fi
+
+mkdir -p $build_path/vvdec
+cd $build_path/vvdec
+# - VVDEC_ENABLE_WASM_PTHREADS=OFF: see vvdec.patch. The filter drives the
+#   decoder with vvdecParams.threads = 0, i.e. fully in the calling thread.
+# - VVDEC_ENABLE_X86_SIMD=OFF: keeps vvdec scalar. The WASM branch of vvdec's
+#   CMakeLists otherwise adds -msimd128, which no other module in this player
+#   is built with. Turn it back ON (and accept the simd128 requirement) if
+#   decoding speed matters more than uniformity.
+# - VVDEC_ENABLE_WASM_BINDINGS=OFF: see vvdec.patch. Drops vvdec's embind JS
+#   bindings, which the filter does not use and which no longer compile against
+#   emscripten 6.0.8's embind headers.
+# - VVDEC_ENABLE_WERROR=OFF: upstream builds with -Werror, and the emscripten
+#   clang warns on constructs (unused templates/functions/local typedefs) that
+#   the native builds do not.
+# - VVDEC_ENABLE_LINK_TIME_OPT=OFF: avoids shipping LTO bitcode in the .a that
+#   is later linked into a side module.
+# - VVDEC_TOPLEVEL_OUTPUT_DIRS=OFF: keeps artifacts in the build tree instead
+#   of writing them back into the vvdec submodule's bin/ and lib/.
+emcmake cmake $source_path/vvdec $CMAKE_BUILD_TYPE \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DVVDEC_LIBRARY_ONLY=ON \
+  -DVVDEC_ENABLE_WASM_PTHREADS=OFF \
+  -DVVDEC_ENABLE_X86_SIMD=OFF \
+  -DVVDEC_ENABLE_WASM_BINDINGS=OFF \
+  -DVVDEC_ENABLE_WERROR=OFF \
+  -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+  -DVVDEC_TOPLEVEL_OUTPUT_DIRS=OFF \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DCMAKE_CXX_FLAGS="-fPIC" \
+  -DCMAKE_C_FLAGS="-fPIC"
+
+# "vvdec" only: the default "all" target also builds tests/vvdec_unit_test,
+# an executable whose link still carries vvdec's WASM -sUSE_PTHREADS link
+# options and therefore fails against these non-pthread objects. Only
+# libvvdec.a is needed here.
+emmake make vvdec "${MAKEFLAGS}"
