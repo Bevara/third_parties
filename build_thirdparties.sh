@@ -630,6 +630,22 @@ emmake make "${MAKEFLAGS}" xcf2png xcf2pnm xcfinfo
 mkdir -p $build_path/xcftools
 cp $source_path/xcftools/xcf2png $source_path/xcftools/xcf2png.wasm $source_path/xcftools/xcf2pnm $source_path/xcftools/xcf2pnm.wasm $source_path/xcftools/xcfinfo $source_path/xcftools/xcfinfo.wasm $build_path/xcftools
 
+echo "Building xcftools core"
+# The converters above are executables; the libxcf filter needs the decoding
+# core as an archive instead. Everything except io-unix.c and the three main()
+# files: the filter hands xcftools the document through its xcf_file/xcf_length
+# globals, so the mmap/open/unzip layer is not wanted - and would drag in
+# process spawning that does not exist under emscripten.
+mkdir -p $build_path/xcftools-lib
+cd $build_path/xcftools-lib
+emcc -c -fPIC ${EMCCFLAGS:--O2} -D_GNU_SOURCE -include endian.h -I$source_path/xcftools \
+  $source_path/xcftools/xcf-general.c $source_path/xcftools/pixels.c \
+  $source_path/xcftools/flatten.c $source_path/xcftools/flatspec.c \
+  $source_path/xcftools/enums.c $source_path/xcftools/palette.c \
+  $source_path/xcftools/scaletab.c $source_path/xcftools/table.c \
+  $source_path/xcftools/utils.c $source_path/xcftools/nlsini.c
+emar rcs libxcftools.a *.o
+
 # bcdec (DDS/BCn) is a single public-domain header, bcdec.h: include it from the
 # filter with #define BCDEC_IMPLEMENTATION in one translation unit. Nothing to
 # build here.

@@ -190,3 +190,6 @@
 [submodule "monkeys-audio"]
 	path = monkeys-audio
 	url = https://github.com/fernandotcl/monkeys-audio.git
+[submodule "mupdf"]
+	path = mupdf
+	url = https://github.com/ArtifexSoftware/mupdf.git
