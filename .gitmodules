@@ -184,3 +184,9 @@
 [submodule "opencore-amr"]
 	path = opencore-amr
 	url = https://git.code.sf.net/p/opencore-amr/code
+[submodule "dcadec"]
+	path = dcadec
+	url = https://github.com/foo86/dcadec.git
+[submodule "monkeys-audio"]
+	path = monkeys-audio
+	url = https://github.com/fernandotcl/monkeys-audio.git

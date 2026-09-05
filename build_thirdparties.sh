@@ -715,3 +715,127 @@ cd $build_path/recoil
 # apply here, so compile the two library files directly.
 emcc -c -fPIC ${EMCCFLAGS:--O3} -I$source_path/recoil-6.4.5 $source_path/recoil-6.4.5/recoil.c $source_path/recoil-6.4.5/recoil-stdio.c
 emar rcs librecoil.a recoil.o recoil-stdio.o
+
+# ---------------------------------------------------------------------------
+# Audio decoders: tracker modules, chiptunes, WavPack, Speex, AMR, Musepack,
+# TTA. None of these formats has a decoder in the browser.
+# ---------------------------------------------------------------------------
+
+echo "Building libxmp"
+mkdir -p $build_path/libxmp
+cd $build_path/libxmp
+emcmake cmake $source_path/libxmp -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED=OFF -DBUILD_STATIC=ON -DLIBXMP_PIC=ON -DWITH_UNIT_TESTS=OFF $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building game-music-emu"
+mkdir -p $build_path/gme
+cd $build_path/gme
+# GME_ZLIB=OFF: only needed to read gzipped VGZ files, and it would add a zlib
+# dependency to the filter's link line.
+emcmake cmake $source_path/game-music-emu -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" -DGME_BUILD_SHARED=OFF -DGME_BUILD_STATIC=ON -DGME_BUILD_EXAMPLES=OFF -DGME_BUILD_TESTING=OFF -DGME_ZLIB=OFF $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building wavpack"
+mkdir -p $build_path/wavpack
+cd $build_path/wavpack
+emcmake cmake $source_path/wavpack -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF -DWAVPACK_BUILD_PROGRAMS=OFF -DWAVPACK_ENABLE_ASM=OFF -DWAVPACK_ENABLE_THREADS=OFF -DWAVPACK_BUILD_DOCS=OFF -DBUILD_TESTING=OFF $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building speex"
+cd $source_path/speex
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/speex
+cd $build_path/speex
+emconfigure $source_path/speex/configure --enable-static --disable-shared --disable-oggtest --disable-binaries CFLAGS="-fPIC"
+emmake make "${MAKEFLAGS}"
+
+echo "Building opencore-amr"
+cd $source_path/opencore-amr
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/opencore-amr
+cd $build_path/opencore-amr
+# --enable-compile-c: the codec sources still declare 'register' variables,
+# which C++17 - emcc's default for .cpp - rejects outright. Built as C they
+# compile as they always have.
+emconfigure $source_path/opencore-amr/configure --enable-static --disable-shared --enable-compile-c
+# CFLAGS/CXXFLAGS are repeated on the make line: the generated makefile ignores
+# what configure was given, and without -fPIC the archive cannot be linked into
+# a side module ("relocation R_WASM_MEMORY_ADDR_SLEB cannot be used against
+# symbol ...; recompile with -fPIC").
+emmake make "${MAKEFLAGS}" CFLAGS="-fPIC -O2" CXXFLAGS="-fPIC -O2"
+
+echo "Building musepack"
+cd $source_path
+wget -nc https://files.musepack.net/source/musepack_src_r475.tar.gz
+tar -xf musepack_src_r475.tar.gz
+# Same idiom as poppler and vvdec above: the local adaptation lives in a patch
+# file so re-running this script is idempotent. It adds the missing extern on
+# three tables declared in libmpcdec/requant.h.
+PATCH_FILE_MPC="$source_path/musepack.patch"
+if patch -p1 -d $source_path/musepack_src_r475 --dry-run < "$PATCH_FILE_MPC" >/dev/null 2>&1; then
+    echo "Applying musepack patch"
+    patch -p1 -d $source_path/musepack_src_r475 < "$PATCH_FILE_MPC"
+fi
+mkdir -p $build_path/musepack
+cd $build_path/musepack
+# Only libmpcdec is built, and by hand: the project's own CMake configuration
+# also covers mpcchap, which stops at configure time on a missing libcuefile.
+# The file list is the one from libmpcdec/CMakeLists.txt.
+emcc -c -fPIC ${EMCCFLAGS:--O3} -I$source_path/musepack_src_r475/include \
+  $source_path/musepack_src_r475/libmpcdec/huffman.c \
+  $source_path/musepack_src_r475/libmpcdec/mpc_decoder.c \
+  $source_path/musepack_src_r475/libmpcdec/mpc_reader.c \
+  $source_path/musepack_src_r475/libmpcdec/streaminfo.c \
+  $source_path/musepack_src_r475/libmpcdec/mpc_bits_reader.c \
+  $source_path/musepack_src_r475/libmpcdec/mpc_demux.c \
+  $source_path/musepack_src_r475/libmpcdec/requant.c \
+  $source_path/musepack_src_r475/libmpcdec/synth_filter.c \
+  $source_path/musepack_src_r475/common/crc32.c
+emar rcs libmpcdec.a huffman.o mpc_decoder.o mpc_reader.o streaminfo.o mpc_bits_reader.o mpc_demux.o requant.o synth_filter.o crc32.o
+
+echo "Building libtta"
+cd $source_path
+wget -nc https://downloads.sourceforge.net/project/tta/tta/libtta/libtta-c-2.3.tar.gz
+tar -xf libtta-c-2.3.tar.gz
+mkdir -p $build_path/libtta
+cd $build_path/libtta
+# libtta's configure only knows x86 and ARM, and its x86 path is written
+# against the SSE intrinsics, so the build goes through emscripten's SSE
+# emulation: --host=i686 to get that path, then -msimd128 to let emcc accept
+# -msse2/-msse4.1. The resulting module therefore needs a browser with
+# WebAssembly SIMD (all current ones).
+emconfigure $source_path/libtta-c-2.3/configure --enable-static --disable-shared --host=i686-pc-linux-gnu --disable-asm
+# CFLAGS has to be set here rather than at configure time (the generated
+# makefile overrides it), the target is the library alone (console/tta.c uses
+# x86 inline asm for cpuid), and AR/RANLIB are needed because automake resolved
+# them to the host ar, which writes an empty archive from wasm objects.
+emmake make "${MAKEFLAGS}" CFLAGS="-fPIC -O2 -msimd128 -msse2 -msse4.1" AR=emar RANLIB=emranlib libtta.a
+
+# Three of the audio libraries above are built but have no filter yet:
+# - speex: .spx files are Speex packets inside an Ogg container, so the filter
+#   also needs the Ogg page/packet layer (libogg is already built above, the
+#   vorbis filter shows the idiom in dmx_ogg.c).
+# - libtta: its C API is a singleton with I/O callbacks rather than a handle,
+#   which does not map onto one decoder instance per filter as it stands.
+# - game-music-emu: a libgme filter exists and links, but the side module never
+#   registers itself in the browser - the wasm is fetched, gmedec never appears
+#   in the filter graph and the session ends with "Filter not found for the
+#   desired type". Moving the registering constructor to priority 101 (so it
+#   runs before game-music-emu's own C++ static constructors) did not change
+#   it; the next thing to check is whether one of those static constructors
+#   traps and aborts the whole ctor chain.
+
+# --- standalone decoders for formats otherwise only found inside ffmpeg ---
+
+echo "Building dcadec"
+mkdir -p $build_path/dcadec
+cd $build_path/dcadec
+# Its makefile builds out of tree on its own; "lib" is libdcadec.a alone, the
+# default target would also build the dcadec command line tool.
+emmake make "${MAKEFLAGS}" -f $source_path/dcadec/Makefile CC=emcc AR=emar CFLAGS="-std=gnu99 -fPIC -O3 -DNDEBUG" lib
+
+echo "Building monkeys-audio"
+mkdir -p $build_path/monkeys-audio
+cd $build_path/monkeys-audio
+emcmake cmake $source_path/monkeys-audio -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
