@@ -112,3 +112,75 @@
 [submodule "vvdec"]
 	path = vvdec
 	url = https://github.com/fraunhoferhhi/vvdec.git
+[submodule "libwebp"]
+	path = libwebp
+	url = https://github.com/webmproject/libwebp.git
+[submodule "giflib"]
+	path = giflib
+	url = https://git.code.sf.net/p/giflib/code
+[submodule "charls"]
+	path = charls
+	url = https://github.com/team-charls/charls.git
+[submodule "jxrlib"]
+	path = jxrlib
+	url = https://github.com/4creators/jxrlib.git
+[submodule "jbig"]
+	path = jbig
+	url = https://github.com/ImageMagick/jbig.git
+[submodule "jbig2dec"]
+	path = jbig2dec
+	url = https://github.com/ArtifexSoftware/jbig2dec.git
+[submodule "djvulibre"]
+	path = djvulibre
+	url = https://github.com/barak/djvulibre.git
+[submodule "flif"]
+	path = flif
+	url = https://github.com/FLIF-hub/FLIF.git
+[submodule "bcdec"]
+	path = bcdec
+	url = https://github.com/iOrange/bcdec.git
+[submodule "libiff"]
+	path = libiff
+	url = https://github.com/svanderburg/libiff.git
+[submodule "libilbm"]
+	path = libilbm
+	url = https://github.com/svanderburg/libilbm.git
+[submodule "libicns"]
+	path = libicns
+	url = https://git.code.sf.net/p/icns/code
+[submodule "xcftools"]
+	path = xcftools
+	url = https://github.com/j-jorge/xcftools.git
+[submodule "vtflib"]
+	path = vtflib
+	url = https://github.com/panzi/VTFLib.git
+[submodule "psd_sdk"]
+	path = psd_sdk
+	url = https://github.com/MolecularMatters/psd_sdk.git
+[submodule "svt-jpeg-xs"]
+	path = svt-jpeg-xs
+	url = https://github.com/OpenVisualCloud/SVT-JPEG-XS.git
+[submodule "libjpeg-xt"]
+	path = libjpeg-xt
+	url = https://github.com/thorfdbg/libjpeg.git
+[submodule "libexif"]
+	path = libexif
+	url = https://github.com/libexif/libexif.git
+[submodule "nitro"]
+	path = nitro
+	url = https://github.com/mdaus/nitro.git
+[submodule "libxmp"]
+	path = libxmp
+	url = https://github.com/libxmp/libxmp.git
+[submodule "game-music-emu"]
+	path = game-music-emu
+	url = https://github.com/libgme/game-music-emu.git
+[submodule "wavpack"]
+	path = wavpack
+	url = https://github.com/dbry/WavPack.git
+[submodule "speex"]
+	path = speex
+	url = https://gitlab.xiph.org/xiph/speex.git
+[submodule "opencore-amr"]
+	path = opencore-amr
+	url = https://git.code.sf.net/p/opencore-amr/code

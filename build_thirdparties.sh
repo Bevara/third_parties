@@ -473,3 +473,245 @@ emcmake cmake $source_path/vvdec $CMAKE_BUILD_TYPE \
 # options and therefore fails against these non-pthread objects. Only
 # libvvdec.a is needed here.
 emmake make vvdec "${MAKEFLAGS}"
+
+# ---------------------------------------------------------------------------
+# Image decoders added for the still-image formats (GIF, WebP, JPEG-LS, JPEG XR,
+# JBIG/JBIG2, DjVu, FLIF, ICNS, IFF/ILBM, XCF, PSD, JPEG XT, Exif).
+# ---------------------------------------------------------------------------
+
+# jbigkit and jxrlib call "ar" and "ranlib" by name in their makefiles instead
+# of honouring $(AR), so a command-line AR=emar has no effect on them. Put
+# emar/emranlib in front of the system ones on PATH for those two builds only.
+mkdir -p $build_path/emar-shim
+printf '#!/bin/sh\nexec emar "$@"\n' > $build_path/emar-shim/ar
+printf '#!/bin/sh\nexec emranlib "$@"\n' > $build_path/emar-shim/ranlib
+chmod +x $build_path/emar-shim/ar $build_path/emar-shim/ranlib
+
+echo "Building giflib"
+# giflib has no out-of-tree build, so build in the source tree like xvid and
+# copy the result out. "libgif.a" only: the default target also builds the
+# gifbuild/giftext utilities.
+cd $source_path/giflib
+emmake make libgif.a CC=emcc AR=emar
+mkdir -p $build_path/giflib
+cp $source_path/giflib/libgif.a $build_path/giflib
+
+echo "Building libwebp"
+mkdir -p $build_path/libwebp
+cd $build_path/libwebp
+emcmake cmake $source_path/libwebp -DCMAKE_C_FLAGS="-fpic" -DBUILD_SHARED_LIBS=OFF -DWEBP_BUILD_ANIM_UTILS=OFF -DWEBP_BUILD_CWEBP=OFF -DWEBP_BUILD_DWEBP=OFF -DWEBP_BUILD_GIF2WEBP=OFF -DWEBP_BUILD_IMG2WEBP=OFF -DWEBP_BUILD_VWEBP=OFF -DWEBP_BUILD_WEBPINFO=OFF -DWEBP_BUILD_WEBPMUX=OFF -DWEBP_BUILD_EXTRAS=OFF -DWEBP_BUILD_WEBP_JS=OFF $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building charls"
+mkdir -p $build_path/charls
+cd $build_path/charls
+emcmake cmake $source_path/charls -DCMAKE_CXX_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF -DCHARLS_BUILD_TESTS=OFF -DCHARLS_BUILD_SAMPLES=OFF -DCHARLS_BUILD_CLI=OFF -DCHARLS_INSTALL=OFF $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building jbigkit"
+# In-tree again (plain handwritten makefile), and only the library: the default
+# target also builds the tstcodec test program.
+cd $source_path/jbig/libjbig
+PATH=$build_path/emar-shim:$PATH emmake make libjbig.a CC=emcc CFLAGS="-O2 -fPIC"
+mkdir -p $build_path/jbig
+cp $source_path/jbig/libjbig/libjbig.a $build_path/jbig
+
+echo "Building jbig2dec"
+cd $source_path/jbig2dec
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/jbig2dec
+cd $build_path/jbig2dec
+emconfigure $source_path/jbig2dec/configure --enable-static --disable-shared --without-libpng CFLAGS="-fPIC"
+emmake make "${MAKEFLAGS}" libjbig2dec.la
+
+echo "Building jxrlib"
+mkdir -p $build_path/jxrlib
+cd $source_path/jxrlib
+# CFLAGS has to be restated in full because the makefile assigns it
+# unconditionally, and the three -Wno-error flags are needed because jxrlib
+# predates C99 conformance being enforced: _byteswap_ulong is defined in
+# strcodec.c but declared in no header, and JXRGlue passes typed pointers to
+# void** parameters. Same relaxations Debian carries as patches.
+PATH=$build_path/emar-shim:$PATH emmake make CC=emcc DIR_BUILD=$build_path/jxrlib CFLAGS="-I. -Icommon/include -Iimage/sys -D__ANSI__ -DDISABLE_PERF_MEASUREMENT -w -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -fPIC -O2" $build_path/jxrlib/libjpegxr.a $build_path/jxrlib/libjxrglue.a
+
+echo "Building libexif"
+cd $source_path/libexif
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/libexif
+cd $build_path/libexif
+emconfigure $source_path/libexif/configure --enable-static --disable-shared --disable-nls --disable-docs CFLAGS="-fPIC"
+emmake make "${MAKEFLAGS}"
+
+echo "Building libicns"
+cd $source_path/libicns
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/libicns
+cd $build_path/libicns
+# libicns requires libpng even for the library part, and its configure link
+# test has nothing to find in the emscripten sysroot, so point it at the libpng
+# built above (source tree for png.h, build tree for pnglibconf.h).
+emconfigure $source_path/libicns/configure --enable-static --disable-shared --without-jasper CFLAGS="-fPIC" CPPFLAGS="-I$source_path/libpng-code -I$build_path/libpng" LDFLAGS="-L$build_path/libpng" LIBS="-lpng16 -lz"
+emmake make "${MAKEFLAGS}"
+
+echo "Building libiff"
+cd $source_path/libiff
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/libiff
+cd $build_path/libiff
+emconfigure $source_path/libiff/configure --enable-static --disable-shared --prefix=$build_path/out CFLAGS="-fPIC"
+# Library subdirectory only: the iffjoin/iffpp command line tools do not
+# compile out of tree (they include "iff.h" without the source include path).
+# It is installed into $build_path/out because libilbm links against it.
+emmake make "${MAKEFLAGS}" -C src/libiff
+emmake make -C src/libiff install
+
+echo "Building libilbm"
+cd $source_path/libilbm
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/libilbm
+cd $build_path/libilbm
+# libilbm looks for libiff through pkg-config, which knows nothing about the
+# emscripten prefix; its configure accepts these two variables instead.
+LIBIFF_CFLAGS="-I$build_path/out/include" LIBIFF_LIBS="-L$build_path/out/lib -liff" emconfigure $source_path/libilbm/configure --enable-static --disable-shared --prefix=$build_path/out CFLAGS="-fPIC"
+emmake make "${MAKEFLAGS}" -C src/libilbm
+
+echo "Building flif"
+mkdir -p $build_path/flif
+cd $build_path/flif
+# The CMake project lives in src/, and requires libpng (used by the encoder's
+# PNG input path). Only the decoder library is built here; swap the target for
+# flif_lib_static to get the encoder as well.
+emcmake cmake $source_path/flif/src -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DPNG_LIBRARY=$build_path/libpng/libpng16.a -DPNG_PNG_INCLUDE_DIR="$source_path/libpng-code" -DCMAKE_CXX_FLAGS="-fPIC -I$build_path/libpng" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}" flif_lib_dec_static
+
+echo "Building djvulibre"
+cd $source_path/djvulibre
+[ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi
+mkdir -p $build_path/djvulibre
+cd $build_path/djvulibre
+emconfigure $source_path/djvulibre/configure --enable-static --disable-shared --disable-desktopfiles --disable-xmltools --disable-nls CXXFLAGS="-fPIC"
+# libdjvu only: the tools/ directory builds djvused, ddjvu and friends, which
+# are of no use here.
+emmake make "${MAKEFLAGS}" -C libdjvu
+
+echo "Building psd_sdk"
+mkdir -p $build_path/psd_sdk
+cd $build_path/psd_sdk
+# Not the CMake build: it always compiles the platform NativeFile backend, and
+# the Linux one includes <aio.h>, which emscripten does not have. The core
+# library does not need it - a filter supplies its own psd::File implementation -
+# so compile everything except those backends.
+em++ -c -std=c++17 -fPIC ${EMCCFLAGS:--O3} -I$source_path/psd_sdk/src/Psd $(ls $source_path/psd_sdk/src/Psd/*.cpp | grep -v NativeFile)
+emar rcs libpsd.a *.o
+
+echo "Building libjpeg-xt"
+cd $source_path/libjpeg-xt
+# Built in the source tree: configure only writes an "automakefile" fragment
+# that the in-tree Makefile includes.
+# - ac_cv_func_setjmp/longjmp: configure's link test for them fails under emcc,
+#   but emscripten does implement both, and the library refuses to compile
+#   without them.
+# - SETTINGS=clang: configure stores the full compiler path in SETTINGS and the
+#   makefile then includes Makefile_Settings.$(SETTINGS); only the literal
+#   "clang" and "gcc" variants exist.
+ac_cv_func_longjmp=yes ac_cv_func_setjmp=yes emconfigure ./configure
+emmake make "${MAKEFLAGS}" SETTINGS=clang AR=emar libstatic
+mkdir -p $build_path/libjpeg-xt
+cp $source_path/libjpeg-xt/libjpeg.a $build_path/libjpeg-xt
+
+echo "Building xcftools"
+cd $source_path/xcftools
+# In-tree as well (its handwritten Makefile.in does not support VPATH builds),
+# and only the converters: the default target also runs the gettext manpage
+# rules. The two -include flags work around missing declarations under
+# emscripten (munmap in io-unix.c, be64toh in xcf-general.c).
+emconfigure ./configure --disable-nls CFLAGS="-fPIC -O2 -D_GNU_SOURCE -include sys/mman.h -include endian.h -I$source_path/libpng-code -I$build_path/libpng" LDFLAGS="-L$build_path/libpng"
+emmake make "${MAKEFLAGS}" xcf2png xcf2pnm xcfinfo
+mkdir -p $build_path/xcftools
+cp $source_path/xcftools/xcf2png $source_path/xcftools/xcf2png.wasm $source_path/xcftools/xcf2pnm $source_path/xcftools/xcf2pnm.wasm $source_path/xcftools/xcfinfo $source_path/xcftools/xcfinfo.wasm $build_path/xcftools
+
+# bcdec (DDS/BCn) is a single public-domain header, bcdec.h: include it from the
+# filter with #define BCDEC_IMPLEMENTATION in one translation unit. Nothing to
+# build here.
+
+# Three submodules deliberately have no build step, none of them being portable
+# to wasm32 as they stand:
+# - svt-jpeg-xs: Source/Lib/*/ASM_SSE4_1 and ASM_AVX2 are compiled
+#   unconditionally and use x86 intrinsics (__m128i); the CMake project also
+#   requires a nasm/yasm assembler.
+# - nitro: its coda-oss base aborts at configure time with "Unexpected Pointer
+#   Size: 4 Bytes" - it assumes a 64-bit target.
+# - vtflib: its CMake requires libtxc_dxtn, which is not vendored here. bcdec
+#   above covers the same BC1-BC7 decompression if a VTF filter needs it.
+
+# The four libraries below have no usable git remote (SVN-only or
+# tarball-only upstreams, or a git tree that needs a source generator), so they
+# are fetched as release tarballs the same way libjpeg, liba52, xvid, libmad
+# and lame are, instead of being submodules.
+
+echo "Building libmng"
+cd $source_path
+wget -nc https://downloads.sourceforge.net/project/libmng/libmng-devel/2.0.3/libmng-2.0.3.tar.gz
+tar -xf libmng-2.0.3.tar.gz
+# The tarball ships the maintainer's own generated config.h, which enables
+# MNG_FULL_CMS. Every .c does #include "config.h", and a quoted include is
+# resolved next to the including file first, so that copy would win over the one
+# CMake generates and pull in lcms2. Drop it and let the -I path find CMake's.
+rm -f $source_path/libmng-2.0.3/config.h
+mkdir -p $build_path/libmng
+cd $build_path/libmng
+# JNG frames are JPEG-compressed, so libmng needs libjpeg: point it at the
+# jpeg-9e tree built above the same way vorbis is pointed at the ogg build,
+# since find_package(JPEG) has nothing to find in the emscripten sysroot.
+# Set -DWITH_JPEG=OFF instead if MNG-without-JNG is enough.
+# zlib comes from the emscripten sysroot (embuilder built it at the top of this
+# script), like it does for libpng.
+# -DTRUE/-DFALSE: libmng_types.h defines HAVE_BOOLEAN and its own "boolean"
+# typedef to work around jpeg-9, which makes jmorecfg.h skip the enum that would
+# otherwise declare TRUE and FALSE; libmng_jpeg.c uses them anyway.
+emcmake cmake $source_path/libmng-2.0.3 -DCMAKE_C_FLAGS="-fpic -DTRUE=1 -DFALSE=0" -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DBUILD_MAN=OFF -DWITH_LCMS2=OFF -DWITH_LCMS1=OFF -DWITH_JPEG=ON -DJPEG_LIBRARY=$build_path/libjpeg/.libs/libjpeg.a -DJPEG_INCLUDE_DIR="$source_path/jpeg-9e;$build_path/libjpeg" $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}"
+
+echo "Building libpgf"
+cd $source_path
+wget -nc https://downloads.sourceforge.net/project/libpgf/libpgf/6.14.12/libpgf-src-6.14.12.tar.gz
+tar -xf libpgf-src-6.14.12.tar.gz
+mkdir -p $build_path/pgf
+cd $build_path/pgf
+# The tarball unpacks to an unversioned "libpgf" directory, hence the "pgf"
+# build directory, which would otherwise collide with it when build_path and
+# source_path are the same. Its autotools setup is not usable: AC_OUTPUT is
+# still called with the deprecated multi-line argument list and config.status
+# then fails to find its own Makefile.in. The library is six .cpp files with no
+# dependencies, so compile them directly.
+# - -D__POSIX__: PGFplatform.h derives it from __linux__/__APPLE__/__GLIBC__,
+#   none of which emscripten defines, and falls back to the Win32 branch.
+# - -std=c++14: the sources use dynamic exception specifications
+#   (throw(IOException)), removed in C++17, which is emcc's default.
+em++ -c -fPIC -std=c++14 ${EMCCFLAGS:--O3} -D__POSIX__ -I$source_path/libpgf/include $source_path/libpgf/src/*.cpp
+emar rcs libpgf.a Decoder.o Encoder.o PGFimage.o PGFstream.o Subband.o WaveletTransform.o
+
+echo "Building libnsgif"
+cd $source_path
+wget -nc https://download.netsurf-browser.org/libs/releases/libnsgif-1.0.0-src.tar.gz
+tar -xf libnsgif-1.0.0-src.tar.gz
+mkdir -p $build_path/libnsgif
+cd $build_path/libnsgif
+# libnsgif's Makefile pulls in the separate netsurf-buildsystem package and
+# does its own host/toolchain detection, neither of which survives emcc. The
+# library is two C files with no dependencies, so compile them directly.
+emcc -c -fPIC -std=c99 ${EMCCFLAGS:--O3} -I$source_path/libnsgif-1.0.0/include -I$source_path/libnsgif-1.0.0/src $source_path/libnsgif-1.0.0/src/gif.c $source_path/libnsgif-1.0.0/src/lzw.c
+emar rcs libnsgif.a gif.o lzw.o
+
+echo "Building recoil"
+cd $source_path
+wget -nc https://downloads.sourceforge.net/project/recoil/recoil/6.4.5/recoil-6.4.5.tar.gz
+tar -xf recoil-6.4.5.tar.gz
+mkdir -p $build_path/recoil
+cd $build_path/recoil
+# The git tree only holds the C source (recoil.ci) plus the transpiler
+# invocation; the release tarball is the one that ships the generated recoil.c.
+# Its makefile builds recoil2png and GIMP/ImageMagick plugins, none of which
+# apply here, so compile the two library files directly.
+emcc -c -fPIC ${EMCCFLAGS:--O3} -I$source_path/recoil-6.4.5 $source_path/recoil-6.4.5/recoil.c $source_path/recoil-6.4.5/recoil-stdio.c
+emar rcs librecoil.a recoil.o recoil-stdio.o
