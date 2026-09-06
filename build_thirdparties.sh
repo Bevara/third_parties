@@ -81,6 +81,12 @@ embuilder build libc libc++ libc++abi zlib --pic
 # emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=hevc
 # emmake make "${MAKEFLAGS}"
 
+# echo "Building ffmpeg-h26x"
+# mkdir -p $build_path/ffmpeg-h26x
+# cd $build_path/ffmpeg-h26x
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=h261 --enable-decoder=h263 --enable-decoder=h263i --enable-decoder=h263p
+# emmake make "${MAKEFLAGS}"
+
 # echo "Building ffmpeg-dmx"
 # mkdir -p $build_path/ffmpeg-dmx
 # cd $build_path/ffmpeg-dmx
