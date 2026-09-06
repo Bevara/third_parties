@@ -915,6 +915,22 @@ emcmake cmake $source_path/libilbc -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
 emmake make "${MAKEFLAGS}" ilbc
 
+echo "Building G.72x (Sun public domain, from libsndfile)"
+# Only five files, and no build system needed: libsndfile carries Sun's
+# public-domain reference implementation of G.721 and G.723 in src/G72x, with a
+# block-oriented wrapper on top. The wrapper is what makes it usable here - the
+# bit packing differs per rate (3, 4 or 5 bits per sample into a 480-bit block)
+# and reimplementing it would be the only hard part of the job.
+#
+# The rest of libsndfile is not built: nothing here includes its headers.
+mkdir -p $build_path/g72x
+cd $build_path/g72x
+for f in g72x g721 g723_16 g723_24 g723_40; do
+  emcc -fPIC ${EMCCFLAGS:--O2} -w -c $source_path/libsndfile/src/G72x/$f.c -o $f.o \
+    -I$source_path/libsndfile/src/G72x
+done
+emar rcs libg72x.a *.o
+
 echo "Building libgsm"
 # Only the codec objects: the upstream makefile also builds the toast/untoast
 # tools and calls ar by name. SASR is the arithmetic-shift flag every modern

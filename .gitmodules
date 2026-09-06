@@ -229,3 +229,6 @@
 [submodule "libilbc"]
 	path = libilbc
 	url = https://github.com/TimothyGu/libilbc.git
+[submodule "libsndfile"]
+	path = libsndfile
+	url = https://github.com/libsndfile/libsndfile.git
