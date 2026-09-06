@@ -807,6 +807,94 @@ cd $build_path/xevd
 emcmake cmake $source_path/xevd -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}" xevd
 
+echo "Building utvideo"
+# Ut Video ships only a Visual Studio solution, so there is no build system to
+# drive here - the portable half of utv_core is compiled by hand. Everything
+# named *_x86x64 / *_x86 / *_x64 is left out: those are inline assembly and
+# SSE/AVX intrinsics, and TunedFunc.cpp already carries a complete cpp_* path
+# for every tuned function. WindowsDialogUtil.cpp is the settings dialog.
+#
+# utvideo.patch covers four things MSVC accepted and clang does not, plus the
+# threading:
+#   - "auto& [a, b, c] = f()" where f returns by value: a non-const lvalue
+#     reference cannot bind to a temporary. Changed to auto&&, which binds to
+#     both and deduces T& for lvalues, so nothing else moves.
+#   - a dependent type used without "typename" in BandParallelCodec.cpp.
+#   - CDummyCodec::m_utvfCodec is a static const, not constexpr, so C++17 does
+#     not make it implicitly inline - and its address is taken.
+#   - <endian.h> is a glibc header; Apple keeps it under <machine/>.
+#   - UTVIDEO_SINGLE_THREAD: a job submitted to CThreadManager only ever runs
+#     on a pool thread, so without threads the queue is never drained and
+#     WaitForJobCompletion blocks forever - the same trap davs2 sets. Under
+#     __EMSCRIPTEN__ the manager keeps no threads and runs each job where it is
+#     submitted; bands are independent and WaitForJobCompletion is the only
+#     synchronisation point, so the result is unchanged.
+#
+# fse is vendored inside the Ut Video tree; lz4 is a submodule of this
+# repository. utv_logl is not built - LogWriter.cpp calls getprogname(), which
+# emscripten does not have - and the filter stubs the four entry points it
+# declares.
+cd $source_path/utvideo
+git apply --check ../utvideo.patch 2>/dev/null && git apply ../utvideo.patch
+mkdir -p $build_path/utvideo
+cd $build_path/utvideo
+for f in $(ls $source_path/utvideo/utv_core/*.cpp | grep -v "x86x64\|_x86\|_x64\|WindowsDialogUtil"); do
+  em++ -std=c++17 -fPIC ${EMCCFLAGS:--O2} -w -c "$f" -o "$(basename $f .cpp).o" \
+    -I$source_path/utvideo/utv_core -I$source_path/utvideo/include \
+    -I$source_path/utvideo/fse/common -I$source_path/lz4/lib -I$source_path/utvideo/utv_logl
+done
+emcc -fPIC ${EMCCFLAGS:--O2} -w -c \
+  $source_path/utvideo/fse/common/entropy_common.c \
+  $source_path/utvideo/fse/common/error_private.c \
+  $source_path/utvideo/fse/common/fse_decompress.c \
+  $source_path/utvideo/fse/compress/fse_compress.c \
+  $source_path/utvideo/fse/compress/hist.c \
+  -I$source_path/utvideo/fse/common -I$source_path/utvideo/fse
+emcc -fPIC ${EMCCFLAGS:--O2} -w -c $source_path/lz4/lib/lz4.c -I$source_path/lz4/lib
+emar rcs libutvideo.a *.o
+
+echo "Building schroedinger"
+# schroedinger has no usable build system left for this target: its configure
+# demands orc >= 0.4.16, and orc is a JIT - it emits native instructions into a
+# buffer and jumps to them, which WebAssembly cannot do. So the portable half is
+# compiled by hand with -DDISABLE_ORC, the branch orcc leaves in schroorc-dist.c
+# for exactly this case, and schroedinger.patch supplies what that branch needs:
+#
+#   - orc/orc.h, a four-name stand-in (two integer typedefs, orc_memcpy,
+#     orc_memset, an empty orc_init and an opaque OrcProgram for the struct
+#     fields schromotion.h declares unconditionally);
+#   - schroorc.h regenerated as plain prototypes - the schroorc-dist.h that
+#     ships is the orc-enabled header, every entry an inline dispatcher into
+#     the runtime;
+#   - schroversion.h, normally written by configure;
+#   - _schro_motion_ref forced on under __EMSCRIPTEN__, which selects the
+#     complete C reference motion renderer in schromotionref.c instead of
+#     schromotion8.c, the one that generates code at run time;
+#   - schro_noorc.c, three entry points of that generated renderer, which abort
+#     rather than return a silently blank frame;
+#   - and the signature fixes below.
+#
+# The signature fixes are the interesting part. WebAssembly checks the type at
+# every indirect call, so a function pointer cast to a type with a different
+# number of parameters traps ("function signature mismatch") where a native
+# call simply ignores the surplus argument. schroedinger does this in five
+# places: SchroMemoryDomain::free is declared void(void*,int) but is assigned
+# free, and its containers cast one-argument unref functions to two-argument
+# free typedefs. The patch adds adapters with the declared arity.
+#
+# schroasync-none.c is the threading implementation: it runs each scheduled
+# task inline, which is exactly what a side module needs.
+cd $source_path/schroedinger
+git apply --check ../schroedinger.patch 2>/dev/null && git apply ../schroedinger.patch
+mkdir -p $build_path/schroedinger
+cd $build_path/schroedinger
+printf '#define VERSION "1.0.11"\n#define SCHRO_ENABLE_UNSTABLE_API 1\n#define HAVE_STDINT_H 1\n#define HAVE_STRING_H 1\n' > config.h
+for f in $(ls $source_path/schroedinger/schroedinger/*.c | grep -vE "cuda|opengl|schroarith-i386|schroasync-pthread|schroasync-gthread|schroasync-win32|schrogpu|schromotion8|schromotionfast"); do
+  emcc -fPIC ${EMCCFLAGS:--O2} -w -DDISABLE_ORC -DHAVE_CONFIG_H -DENABLE_MOTION_REF -c "$f" -o "$(basename $f .c).o" \
+    -I$build_path/schroedinger -I$source_path/schroedinger -I$source_path/schroedinger/schroedinger
+done
+emar rcs libschroedinger.a *.o
+
 echo "Building libgsm"
 # Only the codec objects: the upstream makefile also builds the toast/untoast
 # tools and calls ar by name. SASR is the arithmetic-shift flag every modern

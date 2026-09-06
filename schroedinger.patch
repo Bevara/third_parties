@@ -1,0 +1,497 @@
+diff --git a/orc/orc.h b/orc/orc.h
+new file mode 100644
+index 0000000..4b3b3b3
+--- /dev/null
++++ b/orc/orc.h
+@@ -0,0 +1,36 @@
++/*
++ *  Minimal stand-in for <orc/orc.h>.
++ *
++ *  schroedinger is built with -DDISABLE_ORC, so every orc program in
++ *  schroorc-dist.c takes its plain-C branch and the orc runtime is never
++ *  entered. What is still needed from this header is four names: two integer
++ *  typedefs, and the two memory helpers orc exposes as thin wrappers.
++ */
++#ifndef SCHRO_ORC_SHIM_H
++#define SCHRO_ORC_SHIM_H
++
++#include <stdint.h>
++#include <string.h>
++
++typedef int16_t orc_int16;
++typedef int32_t orc_int32;
++typedef int64_t orc_int64;
++typedef uint8_t orc_uint8;
++typedef uint16_t orc_uint16;
++typedef uint32_t orc_uint32;
++typedef uint64_t orc_uint64;
++
++
++/* Opaque: schromotion.h keeps OrcProgram* fields in a struct unconditionally,
++ * but with DISABLE_ORC nothing ever dereferences them. */
++typedef struct _OrcProgram OrcProgram;
++typedef struct _OrcExecutor OrcExecutor;
++
++/* schro.c calls orc_init() from schro_init(); with DISABLE_ORC there is
++ * nothing to initialise. */
++static inline void orc_init(void) { }
++
++static inline void orc_memcpy(void *dst, const void *src, int n) { memcpy(dst, src, (size_t)n); }
++static inline void orc_memset(void *dst, int c, int n) { memset(dst, c, (size_t)n); }
++
++#endif
+diff --git a/schroedinger/schro_noorc.c b/schroedinger/schro_noorc.c
+new file mode 100644
+index 0000000..238ebc8
+--- /dev/null
++++ b/schroedinger/schro_noorc.c
+@@ -0,0 +1,37 @@
++/*
++ *  The two renderers schroedinger generates machine code for at run time.
++ *
++ *  schromotion8.c builds its block accumulators with orc_program_compile(),
++ *  which is a JIT: it emits native instructions into a buffer and jumps to
++ *  them. WebAssembly cannot do that, so that file is not built. schroedinger
++ *  ships a complete C reference renderer for exactly this case
++ *  (schromotionref.c, selected by _schro_motion_ref), and the patch turns it
++ *  on unconditionally - so the two entry points below are never reached.
++ *  They abort rather than return silently: a motion-compensated frame that
++ *  quietly came back blank would be far harder to notice.
++ */
++#include <stdio.h>
++#include <stdlib.h>
++#include <schroedinger/schro.h>
++
++void schro_motion_render_u8 (SchroMotion *motion, SchroFrame *dest,
++    SchroFrame *addframe, int add, SchroFrame *output_frame)
++{
++  (void)motion; (void)dest; (void)addframe; (void)add; (void)output_frame;
++  fprintf (stderr, "[schro] the orc motion renderer is not built; "
++                   "_schro_motion_ref should have routed this to the reference one\n");
++  abort ();
++}
++
++void schro_motion_render_fast (SchroMotion *motion, SchroFrame *dest,
++    SchroFrame *addframe, int add, SchroFrame *output_frame)
++{
++  (void)motion; (void)dest; (void)addframe; (void)add; (void)output_frame;
++  abort ();
++}
++
++int schro_motion_render_fast_allowed (SchroMotion *motion)
++{
++  (void)motion;
++  return 0;
++}
+diff --git a/schroedinger/schrobufferlist.c b/schroedinger/schrobufferlist.c
+index 44d23df..8a0595f 100644
+--- a/schroedinger/schrobufferlist.c
++++ b/schroedinger/schrobufferlist.c
+@@ -21,12 +21,25 @@
+  *
+  * Returns: a new (empty) buffer list.
+  */
++/* WebAssembly checks the signature at every indirect call, so a function
++ * pointer cast to a type with a different number of parameters traps at
++ * run time ("function signature mismatch") where a native call simply
++ * ignores the surplus argument. schroedinger casts its one-argument unref
++ * functions to the two-argument free typedefs its containers declare;
++ * these adapters give them the arity the typedef promises. */
++static void
++schro_buflist_free_buffer (void *member, void *priv)
++{
++  (void) priv;
++  schro_buffer_unref ((SchroBuffer *) member);
++}
++
+ SchroBufferList *
+ schro_buflist_new (void)
+ {
+   SchroBufferList *buflist = schro_malloc0 (sizeof (*buflist));
+   buflist->list =
+-      schro_list_new_full ((SchroListFreeFunc) schro_buffer_unref, NULL);
++      schro_list_new_full (schro_buflist_free_buffer, NULL);
+   buflist->offset = 0;
+ 
+   return buflist;
+diff --git a/schroedinger/schrodecoder.c b/schroedinger/schrodecoder.c
+index cec45c6..e855f87 100644
+--- a/schroedinger/schrodecoder.c
++++ b/schroedinger/schrodecoder.c
+@@ -109,6 +109,26 @@ static void schro_decoder_telemetry (SchroPicture * picture,
+ 
+ /* API */
+ 
++/* WebAssembly checks the signature at every indirect call, so a function
++ * pointer cast to a type with a different number of parameters traps at
++ * run time ("function signature mismatch") where a native call simply
++ * ignores the surplus argument. schroedinger casts its one-argument unref
++ * functions to the two-argument free typedefs its containers declare;
++ * these adapters give them the arity the typedef promises. */
++static void
++schro_decoder_queue_free_picture (void *data, SchroPictureNumber number)
++{
++  (void) number;
++  schro_picture_unref ((SchroPicture *) data);
++}
++
++static void
++schro_decoder_queue_free_frame (void *data, SchroPictureNumber number)
++{
++  (void) number;
++  schro_frame_unref ((SchroFrame *) data);
++}
++
+ static SchroDecoderInstance *
+ schro_decoder_instance_new (SchroDecoder * decoder)
+ {
+@@ -119,14 +139,14 @@ schro_decoder_instance_new (SchroDecoder * decoder)
+   instance->decoder = decoder;
+ 
+   instance->reference_queue = schro_queue_new (SCHRO_LIMIT_REFERENCE_FRAMES,
+-      (SchroQueueFreeFunc) schro_picture_unref);
++      schro_decoder_queue_free_picture);
+   /* the output queue shouldn't be too large: the output queue may be
+    * a precious resource, no point holding on to loads without reason */
+   instance->output_queue =
+-      schro_queue_new (4, (SchroQueueFreeFunc) schro_frame_unref);
++      schro_queue_new (4, schro_decoder_queue_free_frame);
+ 
+   instance->reorder_queue =
+-      schro_queue_new (5, (SchroQueueFreeFunc) schro_picture_unref);
++      schro_queue_new (5, schro_decoder_queue_free_picture);
+ 
+   schro_decoder_set_rob_size (instance);
+ 
+diff --git a/schroedinger/schrodomain.c b/schroedinger/schrodomain.c
+index 018cd26..6f73339 100644
+--- a/schroedinger/schrodomain.c
++++ b/schroedinger/schrodomain.c
+@@ -12,6 +12,25 @@
+ 
+ /* SchroMemoryDomain */
+ 
++/* free is void(void*), but SchroMemoryDomain::free is declared
++ * void(void*, int) and is called with two arguments. Casting through
++ * (void*) hid that: a native call simply ignores the extra argument,
++ * while WebAssembly checks the signature at every indirect call and
++ * traps with "function signature mismatch". These two wrappers give the
++ * pointers the arity the struct declares. */
++static void *
++schro_domain_alloc (int size)
++{
++  return malloc (size);
++}
++
++static void
++schro_domain_free (void *ptr, int size)
++{
++  (void) size;
++  free (ptr);
++}
++
+ SchroMemoryDomain *
+ schro_memory_domain_new (void)
+ {
+@@ -31,8 +50,8 @@ schro_memory_domain_new_local (void)
+ 
+   domain = schro_memory_domain_new ();
+ 
+-  domain->alloc = (void *) malloc;
+-  domain->free = (void *) free;
++  domain->alloc = schro_domain_alloc;
++  domain->free = schro_domain_free;
+   domain->flags = SCHRO_MEMORY_DOMAIN_CPU;
+ 
+   return domain;
+diff --git a/schroedinger/schroencoder.c b/schroedinger/schroencoder.c
+index 2ae06fa..c22ff7a 100644
+--- a/schroedinger/schroencoder.c
++++ b/schroedinger/schroencoder.c
+@@ -543,6 +543,22 @@ schro_encoder_cbr_update (SchroEncoderFrame * frame, int num_bits)
+  *
+  * Returns: a new encoder object
+  */
++/* See the note in schrodecoder.c: a function pointer cast to a type with a
++ * different number of parameters traps on an indirect call in WebAssembly. */
++static void
++schro_encoder_list_free_buffer (void *member, void *priv)
++{
++  (void) priv;
++  schro_buffer_unref ((SchroBuffer *) member);
++}
++
++static void
++schro_encoder_queue_free_frame (void *data, SchroPictureNumber number)
++{
++  (void) number;
++  schro_encoder_frame_unref ((SchroEncoderFrame *) data);
++}
++
+ SchroEncoder *
+ schro_encoder_new (void)
+ {
+@@ -565,7 +581,7 @@ schro_encoder_new (void)
+       SCHRO_VIDEO_FORMAT_CUSTOM);
+ 
+   encoder->inserted_buffers =
+-      schro_list_new_full ((SchroListFreeFunc) schro_buffer_unref, NULL);
++      schro_list_new_full (schro_encoder_list_free_buffer, NULL);
+ 
+   for (c = 0; c < 3; ++c) {
+     for (b = 0; b < SCHRO_LIMIT_SUBBANDS; ++b) {
+@@ -623,7 +639,7 @@ void
+ schro_encoder_start (SchroEncoder * encoder)
+ {
+   encoder->frame_queue = schro_queue_new (encoder->queue_depth,
+-      (SchroQueueFreeFunc) schro_encoder_frame_unref);
++      schro_encoder_queue_free_frame);
+   SCHRO_DEBUG ("queue depth %d", encoder->queue_depth);
+ 
+   encoder->engine_init = 1;
+@@ -4228,7 +4244,7 @@ schro_encoder_frame_new (SchroEncoder * encoder)
+       picture_height);
+ 
+   encoder_frame->inserted_buffers =
+-      schro_list_new_full ((SchroListFreeFunc) schro_buffer_unref, NULL);
++      schro_list_new_full (schro_encoder_list_free_buffer, NULL);
+ 
+   encoder_frame->retired_picture_number = -1;
+ 
+diff --git a/schroedinger/schromotionref.c b/schroedinger/schromotionref.c
+index fb31491..73c412a 100644
+--- a/schroedinger/schromotionref.c
++++ b/schroedinger/schromotionref.c
+@@ -5,7 +5,17 @@
+ #include <schroedinger/schro.h>
+ #include <string.h>
+ 
++/* The renderer schroedinger reaches for by default, schromotion8.c, builds
++ * its block accumulators with orc_program_compile() - a JIT that emits
++ * native instructions and jumps to them. WebAssembly cannot do that, so
++ * that file is not built and this reference renderer, which is plain C and
++ * complete, is selected unconditionally instead. Elsewhere it stays opt-in
++ * through the SCHRO_MOTION_REF environment variable. */
++#if defined(__EMSCRIPTEN__)
++int _schro_motion_ref = TRUE;
++#else
+ int _schro_motion_ref = FALSE;
++#endif
+ 
+ static int
+ get_pixel (SchroMotion * motion, int k, SchroUpsampledFrame * upframe,
+diff --git a/schroedinger/schroorc.h b/schroedinger/schroorc.h
+new file mode 100644
+index 0000000..86999a6
+--- /dev/null
++++ b/schroedinger/schroorc.h
+@@ -0,0 +1,186 @@
++/* Generated from the prototypes in schroorc-dist.c.
++ *
++ * The header schroedinger ships, schroorc-dist.h, is the orc-enabled one:
++ * every entry is an inline dispatcher into the orc runtime. With
++ * DISABLE_ORC the .c file defines the same names as plain C functions, so
++ * what is needed here is their prototypes and nothing else. */
++
++#ifndef _SCHROORC_H_
++#define _SCHROORC_H_
++
++#include <orc/orc.h>
++
++#ifndef ORC_RESTRICT
++#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
++#define ORC_RESTRICT restrict
++#elif defined(__GNUC__) && __GNUC__ >= 4
++#define ORC_RESTRICT __restrict__
++#else
++#define ORC_RESTRICT
++#endif
++#endif
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++void schro_orc_init (void);
++
++void orc_add2_rshift_add_s16_22_vert (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_add2_rshift_add_s32_22_vert (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_add2_rshift_add_s16_22 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_add2_rshift_add_s32_22 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_add2_rshift_sub_s16_22_vert (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_add2_rshift_sub_s16_22 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_add2_rshift_add_s16_11_op (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, const orc_int16 * ORC_RESTRICT s3, int n);
++void orc_add2_rshift_add_s16_11 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_add2_rshift_sub_s16_11_vert (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_add2_rshift_sub_s32_11_vert (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_add2_rshift_sub_s16_11 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_add2_rshift_sub_s32_11 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_add_const_rshift_s16_11 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_add_const_rshift_s16 (orc_int16 * ORC_RESTRICT d1, int p1, int p2, int n);
++void orc_add_const_rshift_s32 (orc_int32 * ORC_RESTRICT d1, int p1, int p2, int n);
++void orc_add_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_add_s16_2d (orc_int16 * ORC_RESTRICT d1, int d1_stride, const orc_int16 * ORC_RESTRICT s1, int s1_stride, int n, int m);
++void orc_addc_rshift_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int p1, int n);
++void orc_lshift1_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_lshift2_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_lshift_s16_ip (orc_int16 * ORC_RESTRICT d1, int p1, int n);
++void orc_lshift_s32_ip (orc_int32 * ORC_RESTRICT d1, int p1, int n);
++void orc_mas2_add_s16_op (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, const orc_int16 * ORC_RESTRICT s3, int p1, int p2, int p3, int n);
++void orc_mas2_add_s16_ip (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int p3, int n);
++void orc_mas2_sub_s16_op (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, const orc_int16 * ORC_RESTRICT s3, int p1, int p2, int p3, int n);
++void orc_mas2_sub_s16_ip (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int p3, int n);
++void orc_mas4_vert_add_s16_1991 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, const orc_int16 * ORC_RESTRICT s3, const orc_int16 * ORC_RESTRICT s4, int p1, int p2, int n);
++void orc_mas4_vert_add_s32_1991 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, const orc_int32 * ORC_RESTRICT s4, int p1, int p2, int n);
++void orc_mas4_horiz_add_s16_1991_ip (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int n);
++void orc_mas4_vert_sub_s16_1991 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, const orc_int16 * ORC_RESTRICT s3, const orc_int16 * ORC_RESTRICT s4, int p1, int p2, int n);
++void orc_mas4_horiz_sub_s16_1991_ip (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int n);
++void orc_subtract_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_add_s16_u8 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n);
++void orc_add_s16_u8_2d (orc_int16 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int n, int m);
++void orc_convert_s16_u8 (orc_int16 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, int n);
++void orc_convert_s16_s32 (orc_int16 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_convert_u8_s16 (orc_uint8 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_convert_s32_s16 (orc_int32 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_offsetconvert_u8_s16 (orc_uint8 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_offsetconvert_u8_s32 (orc_uint8 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_offsetconvert_s16_u8 (orc_int16 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, int n);
++void orc_offsetconvert_s32_u8 (orc_int32 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, int n);
++void orc_offsetconvert_s32_s16 (orc_int32 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_subtract_s16_u8 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n);
++void orc_multiply_and_add_s16_u8 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n);
++void orc_splat_s16_ns (orc_int16 * ORC_RESTRICT d1, int p1, int n);
++void orc_splat_s32_ns (orc_int32 * ORC_RESTRICT d1, int p1, int n);
++void orc_splat_s16_2d_4xn (orc_int16 * ORC_RESTRICT d1, int d1_stride, int p1, int m);
++void orc_splat_s16_2d_8xn (orc_int16 * ORC_RESTRICT d1, int d1_stride, int p1, int m);
++void orc_splat_s16_2d (orc_int16 * ORC_RESTRICT d1, int d1_stride, int p1, int n, int m);
++void orc_splat_u8_ns (orc_uint8 * ORC_RESTRICT d1, int p1, int n);
++void orc_splat_u8_2d (orc_uint8 * ORC_RESTRICT d1, int d1_stride, int p1, int n, int m);
++void orc_average_u8 (orc_uint8 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n);
++void orc_rrshift6_add_s16_2d (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_int16 * ORC_RESTRICT s1, int s1_stride, const orc_int16 * ORC_RESTRICT s2, int s2_stride, int n, int m);
++void orc_rrshift6_add_s32_2d (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_int32 * ORC_RESTRICT s1, int s1_stride, const orc_int16 * ORC_RESTRICT s2, int s2_stride, int n, int m);
++void orc_rrshift6_sub_s16_2d (orc_int16 * ORC_RESTRICT d1, int d1_stride, orc_int16 * ORC_RESTRICT d2, int d2_stride, int n, int m);
++void orc_rrshift6_s16_ip_2d (orc_int16 * ORC_RESTRICT d1, int d1_stride, int n, int m);
++void orc_rrshift6_s16_ip (orc_int16 * ORC_RESTRICT d1, int n);
++void orc_unpack_yuyv_y (orc_uint8 * ORC_RESTRICT d1, const orc_uint16 * ORC_RESTRICT s1, int n);
++void orc_unpack_yuyv_u (orc_uint8 * ORC_RESTRICT d1, const orc_uint32 * ORC_RESTRICT s1, int n);
++void orc_unpack_yuyv_v (orc_uint8 * ORC_RESTRICT d1, const orc_uint32 * ORC_RESTRICT s1, int n);
++void orc_packyuyv (orc_uint32 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, const orc_uint8 * ORC_RESTRICT s3, int n);
++void orc_unpack_uyvy_y (orc_uint8 * ORC_RESTRICT d1, const orc_uint16 * ORC_RESTRICT s1, int n);
++void orc_unpack_uyvy_u (orc_uint8 * ORC_RESTRICT d1, const orc_uint32 * ORC_RESTRICT s1, int n);
++void orc_unpack_uyvy_v (orc_uint8 * ORC_RESTRICT d1, const orc_uint32 * ORC_RESTRICT s1, int n);
++void orc_interleave2_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_interleave2_rrshift1_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_deinterleave2_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_deinterleave2_s32 (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_deinterleave2_lshift1_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_deinterleave2_lshift1_s32 (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_haar_deint_lshift1_split_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_haar_deint_lshift1_split_s32 (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_haar_deint_split_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_haar_deint_split_s32 (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_haar_split_s16_lo (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_split_s16_hi (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_split_s16_op (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_split_s32_op (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_haar_split_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, int n);
++void orc_haar_synth_s16_lo (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_synth_s16_hi (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_synth_s16_op (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_synth_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, int n);
++void orc_haar_synth_rrshift1_int_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_synth_int_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_haar_sub_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_haar_add_half_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_haar_add_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_haar_sub_half_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_sum_u8 (orc_int32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int n);
++void orc_sum_s16 (orc_int32 * ORC_RESTRICT a1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_sum_square_diff_u8 (orc_int32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n);
++void orc_dequantise_s16_2d_4xn (orc_int16 * ORC_RESTRICT d1, int d1_stride, const orc_int16 * ORC_RESTRICT s1, int s1_stride, int p1, int p2, int m);
++void orc_dequantise_s16_2d_8xn (orc_int16 * ORC_RESTRICT d1, int d1_stride, const orc_int16 * ORC_RESTRICT s1, int s1_stride, int p1, int p2, int m);
++void orc_dequantise_s16_ip_2d_8xn (orc_int16 * ORC_RESTRICT d1, int d1_stride, int p1, int p2, int m);
++void orc_dequantise_s16_ip_2d (orc_int16 * ORC_RESTRICT d1, int d1_stride, int p1, int p2, int n, int m);
++void orc_dequantise_s16_ip (orc_int16 * ORC_RESTRICT d1, int p1, int p2, int n);
++void orc_dequantise_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int n);
++void orc_dequantise_var_s16_ip (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, const orc_int16 * ORC_RESTRICT s2, int n);
++void orc_quantise1_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int p3, int n);
++void orc_quantise2_s16 (orc_int16 * ORC_RESTRICT d1, const orc_int16 * ORC_RESTRICT s1, int p1, int p2, int n);
++void orc_quantdequant1_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, int p1, int p2, int p3, int p4, int p5, int n);
++void orc_quantdequant3_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, int p1, int p2, int p3, int p4, int p5, int p6, int n);
++void orc_quantdequant2_s16 (orc_int16 * ORC_RESTRICT d1, orc_int16 * ORC_RESTRICT d2, int p1, int p2, int p3, int p4, int n);
++void orc_downsample_vert_u8 (orc_uint8 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, const orc_uint8 * ORC_RESTRICT s3, const orc_uint8 * ORC_RESTRICT s4, int n);
++void orc_downsample_horiz_u8 (orc_uint8 * ORC_RESTRICT d1, const orc_uint8 * ORC_RESTRICT s1, int n);
++void orc_stats_moment_s16 (orc_int32 * ORC_RESTRICT a1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_stats_above_s16 (orc_int32 * ORC_RESTRICT a1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_accw (int * ORC_RESTRICT a1, const orc_int16 * ORC_RESTRICT s1, int n);
++void orc_avg2_8xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int m);
++void orc_avg2_12xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int m);
++void orc_avg2_16xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int m);
++void orc_avg2_32xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int m);
++void orc_avg2_nxm_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int n, int m);
++void orc_combine4_8xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, const orc_uint8 * ORC_RESTRICT s3, int s3_stride, const orc_uint8 * ORC_RESTRICT s4, int s4_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine4_12xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, const orc_uint8 * ORC_RESTRICT s3, int s3_stride, const orc_uint8 * ORC_RESTRICT s4, int s4_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine4_16xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, const orc_uint8 * ORC_RESTRICT s3, int s3_stride, const orc_uint8 * ORC_RESTRICT s4, int s4_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine4_24xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, const orc_uint8 * ORC_RESTRICT s3, int s3_stride, const orc_uint8 * ORC_RESTRICT s4, int s4_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine4_32xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, const orc_uint8 * ORC_RESTRICT s3, int s3_stride, const orc_uint8 * ORC_RESTRICT s4, int s4_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine4_nxm_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, const orc_uint8 * ORC_RESTRICT s3, int s3_stride, const orc_uint8 * ORC_RESTRICT s4, int s4_stride, int p1, int p2, int p3, int p4, int n, int m);
++void orc_combine2_8xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine2_12xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine2_16xn_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int p1, int p2, int p3, int p4, int m);
++void orc_combine2_nxm_u8 (orc_uint8 * ORC_RESTRICT d1, int d1_stride, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int p1, int p2, int p3, int p4, int n, int m);
++void orc_sad_nxm_u8 (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int n, int m);
++void orc_sad_8x8_u8 (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride);
++void orc_sad_12x12_u8 (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride);
++void orc_sad_16xn_u8 (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int m);
++void orc_sad_32xn_u8 (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int m);
++void orc_add2_rshift_add_s32_22_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, int n);
++void orc_mas4_vert_add_s32_1991_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, const orc_int32 * ORC_RESTRICT s4, const orc_int32 * ORC_RESTRICT s5, int p1, int p2, int n);
++void orc_add2_rshift_sub_s32_22_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, int n);
++void orc_interleave2_rrshift1_s32 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_mas4_vert_sub_s32_1991_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, const orc_int32 * ORC_RESTRICT s4, const orc_int32 * ORC_RESTRICT s5, int p1, int p2, int n);
++void orc_mas4_vert_sub_s32_1991 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, const orc_int32 * ORC_RESTRICT s4, int p1, int p2, int n);
++void orc_mas4_horiz_add_s32_1991_ip (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int p1, int p2, int n);
++void orc_add2_rshift_add_s32_11_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, int n);
++void orc_mas4_horiz_sub_s32_1991_ip (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int p1, int p2, int n);
++void orc_haar_synth_s32_lo (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_haar_synth_int_s32 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_haar_synth_rrshift1_int_s32 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_interleave2_s32 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, int n);
++void orc_mas2_sub_s32_ip (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int p1, int p2, int p3, int n);
++void orc_mas2_add_s32_ip (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int p1, int p2, int p3, int n);
++void orc_mas2_add_s32_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, int p1, int p2, int p3, int n);
++void orc_mas2_sub_s32_op (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, const orc_int32 * ORC_RESTRICT s2, const orc_int32 * ORC_RESTRICT s3, int p1, int p2, int p3, int n);
++void orc_add2_rshift_sub_s32_22 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_add2_rshift_add_s32_11 (orc_int32 * ORC_RESTRICT d1, const orc_int32 * ORC_RESTRICT s1, int n);
++void orc_haar_synth_s32 (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, int n);
++void orc_splat_s32_2d (orc_int32 * ORC_RESTRICT d1, int d1_stride, int p1, int n, int m);
++void orc_dequantise_s32_ip_2d (orc_int32 * ORC_RESTRICT d1, int d1_stride, int p1, int p2, int n, int m);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/schroedinger/schroversion.h b/schroedinger/schroversion.h
+new file mode 100644
+index 0000000..571dcdc
+--- /dev/null
++++ b/schroedinger/schroversion.h
+@@ -0,0 +1,17 @@
++
++#ifndef __SCHRO_VERSION_H__
++#define __SCHRO_VERSION_H__
++
++#define SCHRO_VERSION_MAJOR (@PACKAGE_VERSION_MAJOR@)
++#define SCHRO_VERSION_MINOR (@PACKAGE_VERSION_MINOR@)
++#define SCHRO_VERSION_MICRO (@PACKAGE_VERSION_MICRO@)
++
++#define SCHRO_CHECK_VERSION(major,minor,micro) \
++(SCHRO_VERSION_MAJOR > (major) || \
++(SCHRO_VERSION_MAJOR == (major) && SCHRO_VERSION_MINOR > (minor)) || \
++(SCHRO_VERSION_MAJOR == (major) && SCHRO_VERSION_MINOR == (minor) && \
++SCHRO_VERSION_MICRO >= (micro)))
++
++
++#endif
++

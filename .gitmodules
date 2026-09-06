@@ -217,3 +217,12 @@
 [submodule "xevd"]
 	path = xevd
 	url = https://github.com/mpeg5/xevd
+[submodule "utvideo"]
+	path = utvideo
+	url = https://github.com/umezawatakeshi/utvideo.git
+[submodule "lz4"]
+	path = lz4
+	url = https://github.com/lz4/lz4.git
+[submodule "schroedinger"]
+	path = schroedinger
+	url = https://github.com/Distrotech/schroedinger.git

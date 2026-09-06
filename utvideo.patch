@@ -1,0 +1,721 @@
+diff --git a/utv_core/BandParallelCodec.cpp b/utv_core/BandParallelCodec.cpp
+index c15f80a..168319f 100644
+--- a/utv_core/BandParallelCodec.cpp
++++ b/utv_core/BandParallelCodec.cpp
+@@ -15,7 +15,7 @@ CBandParallelCodec::BAND_POSITION<Encoding> CBandParallelCodec::CalcBandPosition
+ {
+ 	BAND_POSITION<Encoding> result;
+ 
+-	auto pRaw = (BAND_POSITION<Encoding>::raw_t)(Encoding ? m_pInput : m_pOutput);
++	auto pRaw = (typename BAND_POSITION<Encoding>::raw_t)(Encoding ? m_pInput : m_pOutput);
+ 	for (int i = 0; i < m_fmRaw.nPlanes; ++i)
+ 	{
+ 		result.pRawBegin[i] = pRaw + m_fmRaw.cbFirstLineOffset[i] + m_dwStripeBegin[nBandIndex] * m_fmRaw.scbStripeStride[i];
+@@ -38,6 +38,10 @@ CBandParallelCodec::BAND_POSITION<Encoding> CBandParallelCodec::CalcBandPosition
+ 	return result;
+ }
+ 
++/* The one-argument overload is called from the codec translation units too,
++ * and nothing instantiated it there. */
++template CBandParallelCodec::BAND_POSITION<true> CBandParallelCodec::CalcBandPosition<true>(uint32_t nBandIndex);
++template CBandParallelCodec::BAND_POSITION<false> CBandParallelCodec::CalcBandPosition<false>(uint32_t nBandIndex);
+ template CBandParallelCodec::BAND_POSITION<true> CBandParallelCodec::CalcBandPosition<true>(CFrameBuffer* pFrameBuffer, uint32_t nBandIndex);
+ template CBandParallelCodec::BAND_POSITION<false> CBandParallelCodec::CalcBandPosition<false>(CFrameBuffer* pFrameBuffer, uint32_t nBandIndex);
+ 
+@@ -46,7 +50,7 @@ CBandParallelCodec::PLANE_POSITION<Encoding> CBandParallelCodec::CalcPlanePositi
+ {
+ 	PLANE_POSITION<Encoding> result;
+ 
+-	auto pRaw = (BAND_POSITION<Encoding>::raw_t)(Encoding ? m_pInput : m_pOutput);
++	auto pRaw = (typename BAND_POSITION<Encoding>::raw_t)(Encoding ? m_pInput : m_pOutput);
+ 	for (int i = 0; i < m_fmRaw.nPlanes; ++i)
+ 	{
+ 		result.pRawBegin[i] = pRaw + m_fmRaw.cbPlaneOffset[i];
+diff --git a/utv_core/ByteOrder.h b/utv_core/ByteOrder.h
+index b55eb06..fc5b21a 100644
+--- a/utv_core/ByteOrder.h
++++ b/utv_core/ByteOrder.h
+@@ -22,7 +22,11 @@ static inline uint16_t bswap16(uint16_t x) { return __builtin_bswap16(x); }
+ static inline uint32_t bswap32(uint32_t x) { return __builtin_bswap32(x); }
+ static inline uint64_t bswap64(uint64_t x) { return __builtin_bswap64(x); }
+ 
++#if defined(__APPLE__)
++#include <machine/endian.h>
++#else
+ #include <endian.h>
++#endif
+ 
+ #endif
+ 
+diff --git a/utv_core/DummyCodec.cpp b/utv_core/DummyCodec.cpp
+index 07bc4c0..5e747c9 100644
+--- a/utv_core/DummyCodec.cpp
++++ b/utv_core/DummyCodec.cpp
+@@ -5,6 +5,12 @@
+ #include "utvideo.h"
+ #include "DummyCodec.h"
+ 
++/* m_utvfCodec is a static const, not a static constexpr, so C++17 does not
++ * make it implicitly inline - and GetCompressedFormat takes its address.
++ * MSVC let the missing out-of-line definition pass; clang leaves it
++ * undefined, which a WebAssembly side module then cannot link. */
++const utvf_t CDummyCodec::m_utvfCodec;
++
+ CDummyCodec::CDummyCodec(void)
+ {
+ }
+diff --git a/utv_core/Thread.cpp b/utv_core/Thread.cpp
+index c805247..0d2b6fa 100644
+--- a/utv_core/Thread.cpp
++++ b/utv_core/Thread.cpp
+@@ -161,7 +161,63 @@ void CThreadManager::WaitForJobCompletion(void)
+ 
+ #endif
+ 
+-#if defined(__APPLE__) || defined(__unix__)
++/* ---------------------------------------------------------------------------
++ * UTVIDEO_SINGLE_THREAD: a job submitted here only ever runs on a pool
++ * thread, so on a target without threads - a WebAssembly side module, for
++ * instance - pthread_create starts nothing, the queue is never drained and
++ * WaitForJobCompletion blocks forever. With this set the manager keeps no
++ * threads and runs each job where it is submitted. Bands are independent and
++ * WaitForJobCompletion is the only synchronisation point, so running them in
++ * submission order gives the same result. */
++#ifndef UTVIDEO_SINGLE_THREAD
++#if defined(__EMSCRIPTEN__)
++#define UTVIDEO_SINGLE_THREAD 1
++#else
++#define UTVIDEO_SINGLE_THREAD 0
++#endif
++#endif
++
++#if UTVIDEO_SINGLE_THREAD
++
++int CThreadManager::GetNumProcessors(void)
++{
++	return 1;
++}
++
++CThreadManager::CThreadManager(void)
++{
++	m_nNumJobs = 0;
++	m_nNumCompleteJobs = 0;
++	m_nNumThreads = 0;
++	for (int i = 0; i < MAX_THREAD; i++)
++		m_ptidThread[i] = 0;
++}
++
++CThreadManager::~CThreadManager(void)
++{
++}
++
++void *CThreadManager::StaticThreadProc(void *arg)
++{
++	return NULL;
++}
++
++void *CThreadManager::ThreadProc(int nThreadIndex)
++{
++	return NULL;
++}
++
++void CThreadManager::SubmitJob(CThreadJob *pJob, uint32_t dwAffinityHint)
++{
++	pJob->JobProc(this);
++	delete pJob;
++}
++
++void CThreadManager::WaitForJobCompletion(void)
++{
++}
++
++#elif defined(__APPLE__) || defined(__unix__)
+ 
+ int CThreadManager::GetNumProcessors(void)
+ {
+diff --git a/utv_core/ULRACodec.cpp b/utv_core/ULRACodec.cpp
+index 1ad97ca..dbece7d 100644
+--- a/utv_core/ULRACodec.cpp
++++ b/utv_core/ULRACodec.cpp
+@@ -59,8 +59,8 @@ void CULRACodec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CULRACodec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -77,8 +77,8 @@ void CULRACodec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CULRACodec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -95,8 +95,8 @@ void CULRACodec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CULRACodec::PredictDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_ec.dwFlags0 & EC_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 	{
+@@ -156,8 +156,8 @@ bool CULRACodec::PredictDirect(uint32_t nBandIndex)
+ 
+ bool CULRACodec::RestoreDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_fi.dwFlags0 & FI_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 	{
+diff --git a/utv_core/ULRGCodec.cpp b/utv_core/ULRGCodec.cpp
+index a014dc7..af0b22d 100644
+--- a/utv_core/ULRGCodec.cpp
++++ b/utv_core/ULRGCodec.cpp
+@@ -59,8 +59,8 @@ void CULRGCodec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CULRGCodec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -83,8 +83,8 @@ void CULRGCodec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CULRGCodec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -107,8 +107,8 @@ void CULRGCodec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CULRGCodec::PredictDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_ec.dwFlags0 & EC_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 	{
+@@ -192,8 +192,8 @@ bool CULRGCodec::PredictDirect(uint32_t nBandIndex)
+ 
+ bool CULRGCodec::RestoreDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_fi.dwFlags0 & FI_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 	{
+diff --git a/utv_core/ULYUV420Codec.cpp b/utv_core/ULYUV420Codec.cpp
+index a965ec5..1c01a70 100644
+--- a/utv_core/ULYUV420Codec.cpp
++++ b/utv_core/ULYUV420Codec.cpp
+@@ -159,8 +159,8 @@ void ConvertPackedYUV422ToULY0(uint8_t *pDstYBegin, uint8_t *pDstUBegin, uint8_t
+ template<class C>
+ void CULYUV420Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -240,8 +240,8 @@ void ConvertULY0ToPackedYUV422(uint8_t *pDstBegin, uint8_t *pDstEnd, const uint8
+ template<class C>
+ void CULYUV420Codec<C>::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -298,8 +298,8 @@ bool CULYUV420Codec<C>::PredictDirect(uint32_t nBandIndex)
+ 		return true;
+ 	case UTVF_NV12:
+ 		{
+-			auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-			auto& [y, u, v, _] = pPlaneBegin;
++			auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++			auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 			switch (m_ec.dwFlags0 & EC_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 			{
+@@ -332,7 +332,7 @@ bool CULYUV420Codec<C>::PredictDirect(uint32_t nBandIndex)
+ 		break;
+ 	case UTVF_YV16:
+ 		{
+-			auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++			auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+ 
+ 			size_t cbChromaStride = m_nWidth / 2 * (m_bInterlace ? 2 : 1);
+ 
+@@ -389,7 +389,7 @@ bool CULYUV420Codec<C>::DecodeDirect(uint32_t nBandIndex)
+ 
+ 			DecodeAndRestoreToPlanar(nBandIndex, pDstBegin);
+ 
+-			auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++			auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+ 
+ 			size_t cbChromaStride = m_nWidth / 2 * (m_bInterlace ? 2 : 1);
+ 
+@@ -422,8 +422,8 @@ bool CULYUV420Codec<C>::RestoreDirect(uint32_t nBandIndex)
+ 	{
+ 	case UTVF_NV12:
+ 		{
+-			auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-			auto& [y, u, v, _] = pPlaneBegin;
++			auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++			auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 			switch (m_fi.dwFlags0 & FI_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 			{
+diff --git a/utv_core/ULYUV422Codec.cpp b/utv_core/ULYUV422Codec.cpp
+index 4a367bf..475ef1f 100644
+--- a/utv_core/ULYUV422Codec.cpp
++++ b/utv_core/ULYUV422Codec.cpp
+@@ -118,8 +118,8 @@ void CULYUV422Codec<C>::CalcPlaneSizes(unsigned int width, unsigned int height)
+ template<class C>
+ void CULYUV422Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -155,8 +155,8 @@ void CULYUV422Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ template<class C>
+ void CULYUV422Codec<C>::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -201,8 +201,8 @@ bool CULYUV422Codec<C>::PredictDirect(uint32_t nBandIndex)
+ 		return true;
+ 	}
+ 
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_ec.dwFlags0 & EC_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 	{
+@@ -290,8 +290,8 @@ bool CULYUV422Codec<C>::DecodeDirect(uint32_t nBandIndex)
+ template<class C>
+ bool CULYUV422Codec<C>::RestoreDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_fi.dwFlags0 & FI_FLAGS0_INTRAFRAME_PREDICT_MASK)
+ 	{
+diff --git a/utv_core/ULYUV444Codec.cpp b/utv_core/ULYUV444Codec.cpp
+index a57f1dd..71f3896 100644
+--- a/utv_core/ULYUV444Codec.cpp
++++ b/utv_core/ULYUV444Codec.cpp
+@@ -107,8 +107,8 @@ void CULYUV444Codec<C>::CalcPlaneSizes(unsigned int width, unsigned int height)
+ template<class C>
+ void CULYUV444Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -132,8 +132,8 @@ void CULYUV444Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ template<class C>
+ void CULYUV444Codec<C>::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+diff --git a/utv_core/UMRACodec.cpp b/utv_core/UMRACodec.cpp
+index 38dc897..67c419a 100644
+--- a/utv_core/UMRACodec.cpp
++++ b/utv_core/UMRACodec.cpp
+@@ -60,8 +60,8 @@ void CUMRACodec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CUMRACodec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -78,8 +78,8 @@ void CUMRACodec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CUMRACodec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -96,7 +96,7 @@ void CUMRACodec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CUMRACodec::EncodeDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, _] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [pRawBegin, pRawEnd, _] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+ 
+ 	size_t cbPlane = (m_dwStripeEnd[nBandIndex] - m_dwStripeBegin[nBandIndex]) * m_cbPlaneStripeSize[0];
+ 
+@@ -143,7 +143,7 @@ bool CUMRACodec::EncodeDirect(uint32_t nBandIndex)
+ 
+ bool CUMRACodec::DecodeDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, _] = CalcBandPosition<false>(nBandIndex);
++	auto&& [pRawBegin, pRawEnd, _] = CalcBandPosition<false>(nBandIndex);
+ 
+ 	if (!(m_siDecode.siFlags & SI_FLAGS_USE_TEMPORAL_COMPRESSION))
+ 	{
+diff --git a/utv_core/UMRGCodec.cpp b/utv_core/UMRGCodec.cpp
+index 948a15e..a578afb 100644
+--- a/utv_core/UMRGCodec.cpp
++++ b/utv_core/UMRGCodec.cpp
+@@ -60,8 +60,8 @@ void CUMRGCodec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CUMRGCodec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -84,8 +84,8 @@ void CUMRGCodec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CUMRGCodec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -108,7 +108,7 @@ void CUMRGCodec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CUMRGCodec::EncodeDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, _] = CalcBandPosition<true>(nBandIndex);
++	auto&& [pRawBegin, pRawEnd, _] = CalcBandPosition<true>(nBandIndex);
+ 
+ 	size_t cbPlane = (m_dwStripeEnd[nBandIndex] - m_dwStripeBegin[nBandIndex]) * m_cbPlaneStripeSize[0];
+ 
+@@ -170,7 +170,7 @@ bool CUMRGCodec::EncodeDirect(uint32_t nBandIndex)
+ 
+ bool CUMRGCodec::DecodeDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, _] = CalcBandPosition<false>(nBandIndex);
++	auto&& [pRawBegin, pRawEnd, _] = CalcBandPosition<false>(nBandIndex);
+ 
+ 	if (!(m_siDecode.siFlags & SI_FLAGS_USE_TEMPORAL_COMPRESSION))
+ 	{
+diff --git a/utv_core/UMYUV422Codec.cpp b/utv_core/UMYUV422Codec.cpp
+index 039c58a..3a7e4e3 100644
+--- a/utv_core/UMYUV422Codec.cpp
++++ b/utv_core/UMYUV422Codec.cpp
+@@ -120,8 +120,8 @@ void CUMYUV422Codec<C>::CalcPlaneSizes(unsigned int width, unsigned int height)
+ template<class C>
+ void CUMYUV422Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -170,8 +170,8 @@ void CUMYUV422Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ template<class C>
+ void CUMYUV422Codec<C>::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -217,7 +217,7 @@ void CUMYUV422Codec<C>::ConvertFromPlanar(uint32_t nBandIndex)
+ template<class C>
+ bool CUMYUV422Codec<C>::EncodeDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, _] = CalcBandPosition<true>(nBandIndex);
++	auto&& [pRawBegin, pRawEnd, _] = CalcBandPosition<true>(nBandIndex);
+ 
+ 	size_t cbYPlane = (m_dwStripeEnd[nBandIndex] - m_dwStripeBegin[nBandIndex]) * m_cbPlaneStripeSize[0];
+ 	size_t cbCPlane = (m_dwStripeEnd[nBandIndex] - m_dwStripeBegin[nBandIndex]) * m_cbPlaneStripeSize[1];
+@@ -276,7 +276,7 @@ bool CUMYUV422Codec<C>::EncodeDirect(uint32_t nBandIndex)
+ template<class C>
+ bool CUMYUV422Codec<C>::DecodeDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, _] = CalcBandPosition<false>(nBandIndex);
++	auto&& [pRawBegin, pRawEnd, _] = CalcBandPosition<false>(nBandIndex);
+ 
+ 	if (!(m_siDecode.siFlags & SI_FLAGS_USE_TEMPORAL_COMPRESSION))
+ 	{
+diff --git a/utv_core/UMYUV444Codec.cpp b/utv_core/UMYUV444Codec.cpp
+index 85bd770..df0e755 100644
+--- a/utv_core/UMYUV444Codec.cpp
++++ b/utv_core/UMYUV444Codec.cpp
+@@ -109,8 +109,8 @@ void CUMYUV444Codec<C>::CalcPlaneSizes(unsigned int width, unsigned int height)
+ template<class C>
+ void CUMYUV444Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -147,8 +147,8 @@ void CUMYUV444Codec<C>::ConvertToPlanar(uint32_t nBandIndex)
+ template<class C>
+ void CUMYUV444Codec<C>::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+diff --git a/utv_core/UQRACodec.cpp b/utv_core/UQRACodec.cpp
+index 876b4e4..1b9ca8b 100644
+--- a/utv_core/UQRACodec.cpp
++++ b/utv_core/UQRACodec.cpp
+@@ -53,8 +53,8 @@ void CUQRACodec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CUQRACodec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -66,8 +66,8 @@ void CUQRACodec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CUQRACodec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -79,8 +79,8 @@ void CUQRACodec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CUQRACodec::PredictDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_ec.ecFlags & EC_FLAGS_PREDICT_MASK)
+ 	{
+@@ -99,8 +99,8 @@ bool CUQRACodec::PredictDirect(uint32_t nBandIndex)
+ 
+ bool CUQRACodec::RestoreDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, a] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, a] = pPlaneBegin;
+ 
+ 	switch (m_byPredictionType)
+ 	{
+diff --git a/utv_core/UQRGCodec.cpp b/utv_core/UQRGCodec.cpp
+index 36b0918..af4b8c7 100644
+--- a/utv_core/UQRGCodec.cpp
++++ b/utv_core/UQRGCodec.cpp
+@@ -53,8 +53,8 @@ void CUQRGCodec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CUQRGCodec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -72,8 +72,8 @@ void CUQRGCodec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CUQRGCodec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -91,8 +91,8 @@ void CUQRGCodec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CUQRGCodec::PredictDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_ec.ecFlags & EC_FLAGS_PREDICT_MASK)
+ 	{
+@@ -125,8 +125,8 @@ bool CUQRGCodec::PredictDirect(uint32_t nBandIndex)
+ 
+ bool CUQRGCodec::RestoreDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [g, b, r, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [g, b, r, _] = pPlaneBegin;
+ 
+ 	switch (m_byPredictionType)
+ 	{
+diff --git a/utv_core/UQY0Codec.cpp b/utv_core/UQY0Codec.cpp
+index e3eb503..5c3c47a 100644
+--- a/utv_core/UQY0Codec.cpp
++++ b/utv_core/UQY0Codec.cpp
+@@ -53,8 +53,8 @@ void CUQY0Codec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CUQY0Codec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -78,8 +78,8 @@ void CUQY0Codec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CUQY0Codec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -99,8 +99,8 @@ void CUQY0Codec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CUQY0Codec::PredictDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_ec.ecFlags & EC_FLAGS_PREDICT_MASK)
+ 	{
+@@ -209,8 +209,8 @@ bool CUQY0Codec::DecodeDirect(uint32_t nBandIndex)
+ 
+ void CUQY0Codec::RestoreCustom(uint32_t nBandIndex, int nPlaneIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_byPredictionType)
+ 	{
+diff --git a/utv_core/UQY2Codec.cpp b/utv_core/UQY2Codec.cpp
+index 059de50..745a0dc 100644
+--- a/utv_core/UQY2Codec.cpp
++++ b/utv_core/UQY2Codec.cpp
+@@ -55,8 +55,8 @@ void CUQY2Codec::CalcPlaneSizes(unsigned int width, unsigned int height)
+ 
+ void CUQY2Codec::ConvertToPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -84,8 +84,8 @@ void CUQY2Codec::ConvertToPlanar(uint32_t nBandIndex)
+ 
+ void CUQY2Codec::ConvertFromPlanar(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pCurFrame.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_utvfRaw)
+ 	{
+@@ -109,8 +109,8 @@ void CUQY2Codec::ConvertFromPlanar(uint32_t nBandIndex)
+ 
+ bool CUQY2Codec::PredictDirect(uint32_t nBandIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<true>(m_pPredicted.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_ec.ecFlags & EC_FLAGS_PREDICT_MASK)
+ 	{
+@@ -219,8 +219,8 @@ bool CUQY2Codec::DecodeDirect(uint32_t nBandIndex)
+ 
+ void CUQY2Codec::RestoreCustom(uint32_t nBandIndex, int nPlaneIndex)
+ {
+-	auto& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
+-	auto& [y, u, v, _] = pPlaneBegin;
++	auto&& [pRawBegin, pRawEnd, pPlaneBegin] = CalcBandPosition<false>(m_pPredicted.get(), nBandIndex);
++	auto&& [y, u, v, _] = pPlaneBegin;
+ 
+ 	switch (m_byPredictionType)
+ 	{
