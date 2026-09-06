@@ -895,6 +895,26 @@ for f in $(ls $source_path/schroedinger/schroedinger/*.c | grep -vE "cuda|opengl
 done
 emar rcs libschroedinger.a *.o
 
+echo "Building libilbc"
+# libilbc packages WebRTC's fixed-point iLBC as a standalone CMake library, and
+# it cross-builds as it stands. Two flags matter:
+#   - CMAKE_POSITION_INDEPENDENT_CODE: passing -fPIC through CMAKE_C_FLAGS is
+#     not enough, the per-configuration flags land after it and the objects
+#     come out non-PIC. wasm-ld then refuses them with "relocation
+#     R_WASM_MEMORY_ADDR_SLEB cannot be used against symbol ... recompile with
+#     -fPIC" on every constant table.
+#   - the abseil-cpp submodule is only used for a handful of headers, but the
+#     include path needs it, so it must be checked out.
+cd $source_path/libilbc
+git submodule update --init --depth 1 abseil-cpp
+mkdir -p $build_path/libilbc
+cd $build_path/libilbc
+emcmake cmake $source_path/libilbc -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DCMAKE_C_FLAGS_RELEASE="${EMCCFLAGS:--O2} -DNDEBUG -fPIC" \
+  -DCMAKE_CXX_FLAGS_RELEASE="${EMCCFLAGS:--O2} -DNDEBUG -fPIC" \
+  -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
+emmake make "${MAKEFLAGS}" ilbc
+
 echo "Building libgsm"
 # Only the codec objects: the upstream makefile also builds the toast/untoast
 # tools and calls ar by name. SASR is the arithmetic-shift flag every modern

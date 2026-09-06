@@ -226,3 +226,6 @@
 [submodule "schroedinger"]
 	path = schroedinger
 	url = https://github.com/Distrotech/schroedinger.git
+[submodule "libilbc"]
+	path = libilbc
+	url = https://github.com/TimothyGu/libilbc.git
