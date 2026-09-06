@@ -757,6 +757,120 @@ cd $build_path/wavpack
 emcmake cmake $source_path/wavpack -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF -DWAVPACK_BUILD_PROGRAMS=OFF -DWAVPACK_ENABLE_ASM=OFF -DWAVPACK_ENABLE_THREADS=OFF -DWAVPACK_BUILD_DOCS=OFF -DBUILD_TESTING=OFF $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
+echo "Building uavs3d"
+# uavs3d.patch: emscripten reports CMAKE_SYSTEM_PROCESSOR as "x86", so the
+# stock CMakeLists selects decore/sse and decore/avx2. Those do not build for
+# wasm - emscripten emulates SSE but not MMX, and the SSE sources use __m64 -
+# so the patch routes EMSCRIPTEN to the generic C path.
+cd $source_path/uavs3d
+git apply --check ../uavs3d.patch 2>/dev/null && git apply ../uavs3d.patch
+mkdir -p $build_path/uavs3d
+cd $build_path/uavs3d
+emcmake cmake $source_path/uavs3d -DCMAKE_C_FLAGS="-fPIC" -DCOMPILE_10BIT=0 $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}" uavs3d
+
+echo "Building davs2"
+# davs2.patch: davs2 decodes a picture only from a thread-pool worker
+# (davs2_threadpool_run queues the job and returns). A side module has no
+# threads, so the pool stays empty, the queued jobs never run and
+# task_get_free_task spins forever on the second picture. The patch adds
+# DAVS2_SINGLE_THREAD, set automatically under __EMSCRIPTEN__, which runs each
+# job inline instead - the same 50 frames a native davs2 produces.
+#
+# --host=i686-linux-gnu: left to itself the configure script sees Darwin,
+# settles on armv7 and adds -mdynamic-no-pic. The -msse* flags are still
+# needed with --disable-asm because the C sources include <xmmintrin.h>.
+cd $source_path/davs2
+git apply --check ../davs2.patch 2>/dev/null && git apply ../davs2.patch
+cd $source_path/davs2/build/linux
+./configure --disable-asm --disable-cli --host=i686-linux-gnu \
+  --extra-cflags="-fPIC" -msimd128 -msse -msse2 -msse4.1
+emmake make "${MAKEFLAGS}"
+mkdir -p $build_path/davs2
+cp $source_path/davs2/build/linux/libdavs2.a $build_path/davs2/
+
+echo "Building xevd"
+# xevd.patch: two things emscripten breaks on.
+#  - CMAKE_SYSTEM_PROCESSOR comes out as "x86", so the stock CMakeLists selects
+#    the sse/ and avx/ sources; those pull in <x86intrin.h> and the SSE3/AVX
+#    header set. Leaving both ARM and X86 undefined takes xevd_port.h and
+#    xevd_def.h down their portable C path.
+#  - the Clang branch appends -pthread unconditionally, which makes emscripten
+#    emit atomics and shared memory that a side module cannot link. xevd runs
+#    genuinely single-threaded with threads = 1: xevd_create only spawns
+#    workers under "if (ctx->tc.max_task_cnt > 1)", and every per-task loop is
+#    bounded by the task count, so the work happens inline.
+cd $source_path/xevd
+git apply --check ../xevd.patch 2>/dev/null && git apply ../xevd.patch
+mkdir -p $build_path/xevd
+cd $build_path/xevd
+emcmake cmake $source_path/xevd -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}" xevd
+
+echo "Building libgsm"
+# Only the codec objects: the upstream makefile also builds the toast/untoast
+# tools and calls ar by name. SASR is the arithmetic-shift flag every modern
+# compiler satisfies; WAV49 adds the Microsoft frame layout.
+mkdir -p $build_path/libgsm
+cd $build_path/libgsm
+emcc -c -fPIC ${EMCCFLAGS:--O2} -DSASR -DWAV49 -DNeedFunctionPrototypes=1 -w \
+  -I$source_path/libgsm/inc $source_path/libgsm/src/*.c
+rm -f toast.o untoast.o tcat.o
+emar rcs libgsm.a *.o
+
+echo "Building sbc"
+# sbc.c plus the portable primitives. The armv6/iwmmxt/neon/mmx variants are
+# pulled in by #ifdef from sbc_primitives.c and must not be compiled directly.
+mkdir -p $build_path/sbc
+cd $build_path/sbc
+emcc -c -fPIC ${EMCCFLAGS:--O2} -w -I$source_path/sbc \
+  $source_path/sbc/sbc/sbc.c $source_path/sbc/sbc/sbc_primitives.c
+emar rcs libsbc.a *.o
+
+echo "Building liblc3"
+mkdir -p $build_path/liblc3
+cd $build_path/liblc3
+emcc -c -fPIC ${EMCCFLAGS:--O2} -w -I$source_path/liblc3/include -I$source_path/liblc3/src \
+  $source_path/liblc3/src/*.c
+emar rcs liblc3.a *.o
+
+echo "Building codec2"
+# codec2 generates its codebooks with a helper it compiles for the host. Its
+# cross-compilation branch does that by re-running CMake on itself through
+# ExternalProject, and that inner configure fails under emcmake - hence
+# codec2.patch, which takes the tool from -DGENERATE_CODEBOOK instead. Build it
+# natively first:
+#   cmake -S $source_path/codec2 -B <native dir> && cmake --build <native dir> --target generate_codebook
+cd $source_path/codec2
+git apply --check ../codec2.patch 2>/dev/null && git apply ../codec2.patch
+mkdir -p $build_path/codec2
+cd $build_path/codec2
+emcmake cmake $source_path/codec2 -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF -DUNITTEST=OFF \
+  -DGENERATE_CODEBOOK=${CODEC2_GENERATE_CODEBOOK:-$build_path/codec2-native/src/generate_codebook} $CMAKE_BUILD_TYPE
+emmake make "${MAKEFLAGS}" codec2
+
+echo "Building alac"
+# Decoder half of Apple's reference implementation only: ALACDecoder plus the
+# ag/dp/matrix decode helpers. The encoder is not wanted, and the
+# convert-utility drags in CoreAudio.
+#
+# -DTARGET_RT_LITTLE_ENDIAN=1 is not optional. EndianPortable.c only sets that
+# macro for __i386__, __x86_64__ or TARGET_OS_WIN32; wasm32 defines none of the
+# three, so it falls through to the big-endian branch and every Swap*BtoN
+# becomes a no-op. The symptom is subtle: the stream decodes, but the values
+# read out of the ALACSpecificConfig are byte-reversed - a 44100 Hz file
+# reports 1152122880 Hz - and the frame sizes that follow are nonsense.
+mkdir -p $build_path/alac
+cd $build_path/alac
+em++ -c -fPIC ${EMCCFLAGS:--O3} -DTARGET_RT_LITTLE_ENDIAN=1 -I$source_path/alac/codec $source_path/alac/codec/ALACDecoder.cpp
+emcc -c -fPIC ${EMCCFLAGS:--O3} -DTARGET_RT_LITTLE_ENDIAN=1 -I$source_path/alac/codec \
+  $source_path/alac/codec/ALACBitUtilities.c \
+  $source_path/alac/codec/EndianPortable.c \
+  $source_path/alac/codec/ag_dec.c \
+  $source_path/alac/codec/dp_dec.c \
+  $source_path/alac/codec/matrix_dec.c
+emar rcs libalac.a *.o
+
 echo "Building speex"
 cd $source_path/speex
 [ -f configure ] || LIBTOOLIZE=$(command -v libtoolize || command -v glibtoolize) autoreconf -fi

@@ -1,0 +1,32 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index fb10d28..6043922 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -63,20 +63,15 @@ set(CODEBOOKSNEWAMP2_ENERGY
+ 
+ # when crosscompiling we need a native executable
+ if(CMAKE_CROSSCOMPILING)
+-    set(CMAKE_DISABLE_SOURCE_CHANGES OFF)
+-    include(ExternalProject)
+-    ExternalProject_Add(codec2_native
+-       SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..
+-       BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/codec2_native
+-       BUILD_COMMAND ${CMAKE_COMMAND} --build . --target generate_codebook
+-       INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/codec2_native/src/generate_codebook ${CMAKE_CURRENT_BINARY_DIR}
+-       BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/generate_codebook
+-    )
++    # Upstream re-runs CMake on itself through ExternalProject to obtain a
++    # native generate_codebook. That inner configure fails under emcmake, so
++    # the tool is built separately and handed over in GENERATE_CODEBOOK.
++    if(NOT GENERATE_CODEBOOK)
++        message(FATAL_ERROR "cross build needs -DGENERATE_CODEBOOK=<path to a native generate_codebook>")
++    endif()
+     add_executable(generate_codebook IMPORTED)
+     set_target_properties(generate_codebook PROPERTIES
+-        IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/generate_codebook)
+-    add_dependencies(generate_codebook codec2_native)
+-    set(CMAKE_DISABLE_SOURCE_CHANGES ON)
++        IMPORTED_LOCATION ${GENERATE_CODEBOOK})
+ else(CMAKE_CROSSCOMPILING)
+ # Build code generator binaries. These do not get installed.
+     # generate_codebook

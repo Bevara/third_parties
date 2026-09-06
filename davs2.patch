@@ -1,0 +1,63 @@
+diff --git a/source/common/defines.h b/source/common/defines.h
+index 6386875..7413bc6 100644
+--- a/source/common/defines.h
++++ b/source/common/defines.h
+@@ -33,6 +33,19 @@
+ #ifndef DAVS2_DEFINES_H
+ #define DAVS2_DEFINES_H
+ 
++/* ---------------------------------------------------------------------------
++ * DAVS2_SINGLE_THREAD: davs2 decodes a picture only on a thread-pool worker,
++ * so on a target without threads - a WebAssembly side module, for instance -
++ * the pool stays empty and the decoder spins for a task that never frees.
++ * With this set the pool runs each job inline instead. */
++#ifndef DAVS2_SINGLE_THREAD
++#if defined(__EMSCRIPTEN__)
++#define DAVS2_SINGLE_THREAD 1
++#else
++#define DAVS2_SINGLE_THREAD 0
++#endif
++#endif
++
+ 
+ /**
+  * ===========================================================================
+diff --git a/source/common/threadpool.cc b/source/common/threadpool.cc
+index b7dd7b6..b4ed64a 100644
+--- a/source/common/threadpool.cc
++++ b/source/common/threadpool.cc
+@@ -267,11 +267,20 @@ int davs2_threadpool_init(davs2_threadpool_t **p_pool, int threads, davs2_thread
+         davs2_sync_job_list_push(&pool->uninit, job);
+     }
+ 
++#if DAVS2_SINGLE_THREAD
++    /* No worker threads on a single-threaded target: the jobs are run on
++     * the spot by davs2_threadpool_run, so none are spawned here. Leaving
++     * the count at zero also keeps davs2_threadpool_delete from joining
++     * handles that were never created. */
++    pool->num_total_threads = 0;
++    (void)davs2_threadpool_thread;
++#else
+     for (i = 0; i < pool->num_total_threads; i++) {
+         if (davs2_thread_create(pool->thread_handle + i, NULL, davs2_threadpool_thread, pool)) {
+             goto fail;
+         }
+     }
++#endif
+ 
+     return 0;
+ 
+@@ -289,7 +298,13 @@ void davs2_threadpool_run(davs2_threadpool_t *pool, davs2_threadpool_func_t func
+     job->arg1 = arg1;
+     job->arg2 = arg2;
+     job->wait = wait_sign;
++#if DAVS2_SINGLE_THREAD
++    /* Run it here and file it where a pool thread would have. */
++    job->ret = job->func(job->arg1, job->arg2);
++    davs2_sync_job_list_push(job->wait ? &pool->done : &pool->uninit, job);
++#else
+     davs2_sync_job_list_push(&pool->run, job);
++#endif
+ }
+ 
+ /* ---------------------------------------------------------------------------
