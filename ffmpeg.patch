@@ -12,3 +12,17 @@ index f115b21064..05f587c5a7 100755
  # Prevent locale nonsense from breaking basic text processing.
  LC_ALL=C
  export LC_ALL
+
+diff --git a/configure b/configure
+index 8b17cd9627..413db7292f 100755
+--- a/configure
++++ b/configure
+@@ -2838,7 +2838,7 @@ cook_decoder_select="audiodsp sinewin"
+ cri_decoder_select="mjpeg_decoder"
+ cscd_decoder_suggest="zlib"
+ dds_decoder_select="texturedsp"
+-dirac_decoder_select="dirac_parse dwt golomb videodsp mpegvideoenc"
++dirac_decoder_select="dirac_parse dwt golomb qpeldsp videodsp mpegvideoenc"
+ dnxhd_decoder_select="blockdsp idctdsp"
+ dnxhd_encoder_select="blockdsp fdctdsp idctdsp mpegvideoenc pixblockdsp videodsp"
+ dvvideo_decoder_select="dvprofile idctdsp"
