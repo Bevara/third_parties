@@ -57,10 +57,13 @@ echo "Building emscripten libs"
 embuilder build libc libc++ libc++abi zlib --pic
 
 # echo "Building ffmpeg-x264"
+# note: --disable-everything matters here. Without it libavcodec.a comes to
+# 82 Mo and the accessor to 14,8 Mo; with it, 1,9 Mo and 1,7 Mo. x264 must be
+# built first (see "Building libx264" below) so pkg-config finds it.
 # export EM_PKG_CONFIG_PATH=$build_path/out/lib/pkgconfig
 # mkdir -p $build_path/ffmpeg-x264
 # cd $build_path/ffmpeg-x264
-# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --enable-gpl --enable-libx264
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-gpl --enable-libx264 --enable-encoder=libx264
 # emmake make "${MAKEFLAGS}"
 
 # echo "Building ffmpeg-flac"
