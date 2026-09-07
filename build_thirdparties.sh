@@ -90,6 +90,14 @@ embuilder build libc libc++ libc++abi zlib --pic
 # emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=h261 --enable-decoder=h263 --enable-decoder=h263i --enable-decoder=h263p
 # emmake make "${MAKEFLAGS}"
 
+# echo "Building ffmpeg-vc2"
+# note: needs the dirac_decoder_select fix in ffmpeg.patch - diracdsp takes its
+# ff_put_dirac_pixels* from qpeldsp, which dirac_decoder_select does not list.
+# mkdir -p $build_path/ffmpeg-vc2
+# cd $build_path/ffmpeg-vc2
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=dirac
+# emmake make "${MAKEFLAGS}"
+
 # echo "Building ffmpeg-g726"
 # mkdir -p $build_path/ffmpeg-g726
 # cd $build_path/ffmpeg-g726
