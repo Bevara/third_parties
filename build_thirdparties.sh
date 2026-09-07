@@ -90,6 +90,12 @@ embuilder build libc libc++ libc++abi zlib --pic
 # emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=h261 --enable-decoder=h263 --enable-decoder=h263i --enable-decoder=h263p
 # emmake make "${MAKEFLAGS}"
 
+# echo "Building ffmpeg-ffv1"
+# mkdir -p $build_path/ffmpeg-ffv1
+# cd $build_path/ffmpeg-ffv1
+# emconfigure $source_path/ffmpeg/configure --target-os=none --arch=x86_32 --enable-cross-compile --disable-x86asm --disable-inline-asm --disable-stripping --disable-programs --disable-doc --disable-runtime-cpudetect --disable-autodetect --disable-pthreads --pkg-config-flags="--static" --nm="$source_path/emsdk/upstream/bin/llvm-nm" --ar=emar --ranlib=emranlib --cc=emcc --cxx=em++ --objcc=emcc --dep-cc=emcc --enable-pic --disable-everything --enable-decoder=ffv1
+# emmake make "${MAKEFLAGS}"
+
 # echo "Building ffmpeg-dmx"
 # mkdir -p $build_path/ffmpeg-dmx
 # cd $build_path/ffmpeg-dmx
@@ -1087,6 +1093,31 @@ emmake make "${MAKEFLAGS}" CFLAGS="-fPIC -O2 -msimd128 -msse2 -msse4.1" AR=emar 
 #   runs before game-music-emu's own C++ static constructors) did not change
 #   it; the next thing to check is whether one of those static constructors
 #   traps and aborts the whole ctor chain.
+
+echo "Building the SILK SDK"
+# Skype's SILK SDK, not libopus. libopus carries a SILK decoder but not this
+# bitstream: when SILK went into Opus its frame header moved into the Opus TOC
+# byte, so libopus expects the caller to supply the internal rate and the frame
+# count. A standalone .silk file still has them in the frame. Decoding one with
+# libopus's SILK measures -20 dB SNR against the SDK's own decode.
+# The Makefile builds in-tree; CFLAGS has to carry the include paths because
+# overriding it drops the ones the Makefile sets.
+cd $source_path/silk-v3-decoder/silk
+emmake make lib "${MAKEFLAGS}" CC=emcc AR=emar RANLIB=emranlib CFLAGS="-fPIC -O3 -DNDEBUG -Iinterface -Isrc -Itest"
+
+echo "Building iSAC"
+# Vendored sources, see isac/README.Bevara.md for the WebRTC revision and why
+# it is pinned. No build system upstream that survives the extraction, so the
+# objects are compiled one by one here.
+mkdir -p $build_path/isac
+cd $build_path/isac
+for f in $source_path/isac/modules/audio_coding/codecs/isac/main/source/*.c \
+         $source_path/isac/common_audio/signal_processing/*.c \
+         $source_path/isac/modules/third_party/fft/*.c ; do
+    emcc -O3 -fPIC -I$source_path/isac -DNDEBUG -DWEBRTC_POSIX \
+         -c "$f" -o "$(basename "$f" .c).o"
+done
+emar rcs libisac.a *.o
 
 # --- standalone decoders for formats otherwise only found inside ffmpeg ---
 
