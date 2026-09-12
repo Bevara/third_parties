@@ -235,6 +235,3 @@
 [submodule "silk-v3-decoder"]
 	path = silk-v3-decoder
 	url = https://github.com/kn007/silk-v3-decoder.git
-[submodule "libflv"]
-	path = libflv
-	url = https://github.com/BreakingY/libflv.git

@@ -1148,16 +1148,3 @@ cd $build_path/monkeys-audio
 emcmake cmake $source_path/monkeys-audio -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
-echo "Building libflv"
-# libflv is a FLV/RTMP muxer/demuxer with callbacks. The upstream CMakeLists.txt
-# builds a SHARED library and a test executable, neither of which apply here.
-# Build only the demuxer objects as a static archive; the muxer (flv_muxer.c)
-# is not needed for a player.
-mkdir -p $build_path/libflv
-cd $build_path/libflv
-for f in $source_path/libflv/source/amf0.c \
-         $source_path/libflv/source/flv_demuxer.c \
-         $source_path/libflv/source/flv_utils.c; do
-    emcc -c -fPIC ${EMCCFLAGS:--O2} -w -I$source_path/libflv/include -I$source_path/libflv/source "$f" -o "$(basename $f .c).o"
-done
-emar rcs libflv.a amf0.o flv_demuxer.o flv_utils.o
