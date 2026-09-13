@@ -1148,3 +1148,24 @@ cd $build_path/monkeys-audio
 emcmake cmake $source_path/monkeys-audio -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $CMAKE_BUILD_TYPE
 emmake make "${MAKEFLAGS}"
 
+
+echo "Building faac"
+# libfaac 2.x only ships a meson build. Its config.h is a handful of macros, so
+# the objects are compiled one by one here, the way isac is, with an equivalent
+# config.h written in the build directory: no SSE2 (the optional x86 quantizer
+# is left out), no stats, MAX_CHANNELS at meson's default of 8.
+mkdir -p $build_path/faac
+cd $build_path/faac
+cat > config.h <<'FAACCFG'
+#define PACKAGE "faac"
+#define PACKAGE_VERSION "2.1.0"
+#define FAAC_SBR_DECIMATION 1
+#define MAX_CHANNELS 8
+FAACCFG
+for f in $source_path/faac/libfaac/*.c ; do
+    case "$f" in *quantize_sse.c) continue ;; esac
+    emcc -O3 -fPIC -include $build_path/faac/config.h \
+         -I$source_path/faac/include -I$source_path/faac/libfaac \
+         -c "$f" -o "$(basename "$f" .c).o"
+done
+emar rcs libfaac.a *.o
