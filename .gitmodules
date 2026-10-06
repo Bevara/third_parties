@@ -238,3 +238,6 @@
 [submodule "faac"]
 	path = faac
 	url = https://github.com/knik0/faac.git
+[submodule "dav2d"]
+	path = dav2d
+	url = https://code.videolan.org/videolan/dav2d.git

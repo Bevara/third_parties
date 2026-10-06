@@ -1,0 +1,20 @@
+# Fichier de cross-compilation meson pour les bibliotheques wasm bati avec meson
+# (dav2d). Les autres dependances passent par emcmake/emconfigure, qui posent
+# eux-memes la toolchain ; meson veut cette description explicite.
+[binaries]
+c = 'emcc'
+cpp = 'em++'
+ar = 'emar'
+ranlib = 'emranlib'
+strip = 'emstrip'
+nm = 'llvm-nm'
+
+[built-in options]
+c_args = ['-fPIC']
+cpp_args = ['-fPIC']
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'

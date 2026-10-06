@@ -448,6 +448,29 @@ cd $build_path/fdk-aac
 emcmake cmake $source_path/fdk-aac $CMAKE_BUILD_TYPE -DBUILD_SHARED_LIBS=OFF
 emmake make "${MAKEFLAGS}"
 
+echo "Building dav2d"
+# dav2d est le decodeur AV2 de VideoLAN, derive de dav1d. Seule dependance du
+# depot batie avec meson : les autres passent par emcmake/emconfigure, qui
+# posent eux-memes la toolchain, alors que meson exige le fichier de
+# cross-compilation cross_wasm.txt place a cote de ce script.
+if ! command -v meson >/dev/null 2>&1; then
+    echo "ERREUR: meson est requis pour dav2d (pip install meson)" >&2
+    exit 1
+fi
+# -Denable_asm=false: les noyaux SIMD de dav2d sont en assembleur x86/ARM.
+# -Denable_tools/tests/examples=false: le CLI et les tests tirent SDL et des
+#   donnees de test dont la bibliotheque n'a pas besoin.
+rm -rf $build_path/dav2d
+meson setup $build_path/dav2d $source_path/dav2d \
+  --cross-file $source_path/cross_wasm.txt \
+  -Ddefault_library=static \
+  -Denable_asm=false \
+  -Denable_tools=false \
+  -Denable_tests=false \
+  -Denable_examples=false \
+  --buildtype release
+ninja -C $build_path/dav2d
+
 echo "Building vvdec"
 # The vvdec submodule must stay on the v3.2.0 tag. On master as of
 # v3.2.0-30-g81156d6 ("make VPS, SPS, PPS shared_ptrs also" and following),
