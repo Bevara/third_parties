@@ -241,3 +241,6 @@
 [submodule "dav2d"]
 	path = dav2d
 	url = https://code.videolan.org/videolan/dav2d.git
+[submodule "x265_git"]
+	path = x265_git
+	url = https://bitbucket.org/multicoreware/x265_git.git

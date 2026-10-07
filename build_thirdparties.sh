@@ -290,11 +290,13 @@ emcmake cmake $source_path/faad2 $CMAKE_BUILD_TYPE -DCMAKE_C_FLAGS="-fPIC" -DBUI
 emmake make "${MAKEFLAGS}"
 
 echo "Building libraw"
-cd $source_path/libraw
+# The submodule is LibRaw; "libraw" only resolves on a case-insensitive file
+# system (macOS), not on the Linux CI.
+cd $source_path/LibRaw
 autoreconf --install
 mkdir -p $build_path/libraw
 cd $build_path/libraw
-emconfigure $source_path/libraw/configure --disable-examples --disable-jasper --disable-openmp CFLAGS="-fPIC -fvisibility=hidden" CXXFLAGS="-fPIC -fvisibility=hidden -fvisibility-inlines-hidden"
+emconfigure $source_path/LibRaw/configure--disable-examples --disable-jasper --disable-openmp CFLAGS="-fPIC -fvisibility=hidden" CXXFLAGS="-fPIC -fvisibility=hidden -fvisibility-inlines-hidden"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libde265"
@@ -307,8 +309,10 @@ emmake make "${MAKEFLAGS}"
 echo "Building libheif"
 mkdir -p $build_path/libheif
 cd $build_path/libheif
+# de265.h includes <libde265/de265-version.h>, which libde265 generates in its
+# build directory, not next to its sources: hence the extra -I.
 CONFIGURE_ARGS="-DENABLE_MULTITHREADING_SUPPORT=OFF -DWITH_GDK_PIXBUF=OFF -DWITH_EXAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_PLUGIN_LOADING=OFF -DWITH_LIBDE265=ON -DBUILD_TESTING=OFF -DLIBDE265_INCLUDE_DIR=$source_path/libde265 -DLIBDE265_LIBRARY=$build_path/libde265/libde265/libde265.a"
-emcmake cmake $source_path/libheif  $CONFIGURE_ARGS $CMAKE_BUILD_TYPE  -DCMAKE_C_FLAGS="-fpic -D__EMSCRIPTEN_STANDALONE_WASM__" -DCMAKE_CXX_FLAGS="-fpic -D__EMSCRIPTEN_STANDALONE_WASM__"
+emcmake cmake $source_path/libheif  $CONFIGURE_ARGS $CMAKE_BUILD_TYPE  -DCMAKE_C_FLAGS="-fpic -D__EMSCRIPTEN_STANDALONE_WASM__ -I$build_path/libde265" -DCMAKE_CXX_FLAGS="-fpic -D__EMSCRIPTEN_STANDALONE_WASM__ -I$build_path/libde265"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libaom"
@@ -1014,11 +1018,15 @@ echo "Building codec2"
 # codec2 generates its codebooks with a helper it compiles for the host. Its
 # cross-compilation branch does that by re-running CMake on itself through
 # ExternalProject, and that inner configure fails under emcmake - hence
-# codec2.patch, which takes the tool from -DGENERATE_CODEBOOK instead. Build it
-# natively first:
-#   cmake -S $source_path/codec2 -B <native dir> && cmake --build <native dir> --target generate_codebook
+# codec2.patch, which takes the tool from -DGENERATE_CODEBOOK instead. It is
+# built natively here (plain cmake, host compiler), unless
+# CODEC2_GENERATE_CODEBOOK already points at one.
 cd $source_path/codec2
 git apply --check ../codec2.patch 2>/dev/null && git apply ../codec2.patch
+if [ -z "$CODEC2_GENERATE_CODEBOOK" ]; then
+  cmake -S $source_path/codec2 -B $build_path/codec2-native -DUNITTEST=OFF -DCMAKE_BUILD_TYPE=Release
+  cmake --build $build_path/codec2-native --target generate_codebook
+fi
 mkdir -p $build_path/codec2
 cd $build_path/codec2
 emcmake cmake $source_path/codec2 -DCMAKE_C_FLAGS="-fPIC" -DBUILD_SHARED_LIBS=OFF -DUNITTEST=OFF \
