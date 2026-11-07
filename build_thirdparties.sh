@@ -46,9 +46,24 @@ fi
 echo "Configuring emsdk"
 source $source_path/emsdk_vers.txt
 cd $source_path/emsdk
-./emsdk install $EMSDK_VERS
-./emsdk activate $EMSDK_VERS
+# Fail here, loudly, rather than a thousand lines later. Without this the
+# script has no set -e, so a failed install only printed "error: tool or SDK
+# not found" and the build carried on to die on "emconfigure: command not
+# found" - which looks like a broken PATH instead of an emsdk that never
+# installed. It happens whenever emsdk_vers.txt names a release this emsdk
+# checkout is too old to know about: the submodule pins a commit, and its
+# emscripten-releases-tags.json is what resolves the version. Bump the emsdk
+# submodule along with emsdk_vers.txt.
+if ! ./emsdk install "$EMSDK_VERS"; then
+    echo "emsdk: cannot install $EMSDK_VERS (from $source_path/emsdk_vers.txt)." >&2
+    echo "emsdk: this checkout is $(git -C . rev-parse --short HEAD); its release index knows:" >&2
+    python3 -c "import json;print('  latest =', json.load(open('emscripten-releases-tags.json'))['aliases']['latest'])" >&2 || true
+    echo "emsdk: advance the emsdk submodule to a commit that lists $EMSDK_VERS." >&2
+    exit 1
+fi
+./emsdk activate "$EMSDK_VERS" || { echo "emsdk: cannot activate $EMSDK_VERS" >&2; exit 1; }
 . ./emsdk_env.sh
+command -v emconfigure >/dev/null || { echo "emsdk: emconfigure not on PATH after activating $EMSDK_VERS" >&2; exit 1; }
 
 EMSCRIPTEN=$EMSDK/upstream/emscripten
 export PATH=$PATH:$EMSDK/upstream/bin
@@ -296,7 +311,7 @@ cd $source_path/LibRaw
 autoreconf --install
 mkdir -p $build_path/libraw
 cd $build_path/libraw
-emconfigure $source_path/LibRaw/configure--disable-examples --disable-jasper --disable-openmp CFLAGS="-fPIC -fvisibility=hidden" CXXFLAGS="-fPIC -fvisibility=hidden -fvisibility-inlines-hidden"
+emconfigure $source_path/LibRaw/configure --disable-examples --disable-jasper --disable-openmp CFLAGS="-fPIC -fvisibility=hidden" CXXFLAGS="-fPIC -fvisibility=hidden -fvisibility-inlines-hidden"
 emmake make "${MAKEFLAGS}"
 
 echo "Building libde265"
