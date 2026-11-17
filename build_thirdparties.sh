@@ -356,8 +356,17 @@ autoreconf -fiv
 mkdir -p $build_path/timidity
 cd $build_path/timidity
 emconfigure $source_path/timidity/configure CFLAGS="-std=gnu89 -Wno-implicit-function-declaration -Wno-implicit-int -fPIC"
-emmake make "${MAKEFLAGS}" -C libarc
-emmake make "${MAKEFLAGS}" -C libunimod
+# TiMidity's Makefiles set "AR = ar" themselves, which overrides the emar that
+# emmake exports; only a command-line assignment wins over it. On macOS the
+# system ar cannot index WebAssembly objects and silently writes an empty
+# archive - libarc.a and libunimod.a came out at 96 bytes, libmidi linked
+# against nothing, and the browser then refused it for ten missing symbols.
+emmake make "${MAKEFLAGS}" AR=emar -C libarc
+emmake make "${MAKEFLAGS}" AR=emar -C libunimod
+for a in libarc/libarc.a libunimod/libunimod.a; do
+  n=$("$EMSDK/upstream/bin/llvm-ar" t "$a" 2>/dev/null | wc -l)
+  if [ "$n" -eq 0 ]; then echo "FATAL: $a is empty - the archiver did not take the wasm objects" >&2; exit 1; fi
+done
 
 
 echo "Building libtiff"
